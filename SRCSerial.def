@@ -1,0 +1,13 @@
+LIBRARY "SRCSerial"
+EXPORTS
+    SRCSerial_start
+    SRCSerial_stop
+    SRCSerial_getBufferLength
+    SRCSerial_readBytes
+    SRCSerial_readString
+    SRCSerial_writeBytes
+    SRCSerial_writeString
+    SRCSerial_flush
+    SRCSerial_setControlLines
+    SRCSerial_getLineStatus
+
