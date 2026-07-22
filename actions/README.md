@@ -11,3 +11,6 @@ contract. Inspect any file with:
 Test\Release\SRCSerialTools.exe inspect actions\SRCSerial_start.umd
 ```
 
+The UMD serializer embeds changing metadata, so generation is intentionally not
+part of the normal build. Commit regenerated files only when the action contract
+changes.

@@ -78,6 +78,13 @@ namespace srcserial
             }
         }
 
+        Status FailOpen(const Status& status)
+        {
+            ClosePortNoLock();
+            CloseLog();
+            return status;
+        }
+
         DWORD ResolveTimeout(DWORD requested, DWORD configured)
         {
             return requested == MAXDWORD ? configured : requested;
@@ -222,7 +229,6 @@ namespace srcserial
         ScopedLock lock;
         ClosePortNoLock();
         CloseLog();
-        if (config.logging) OpenLog();
 
         Status validation;
         const std::string path = NormalizePortName(config.port.c_str(), &validation);
@@ -234,15 +240,16 @@ namespace srcserial
         if (config.flowControl < 0 || config.flowControl > 3) return Status::Validation(ErrorInvalidParameter, "FlowControl must be 0 through 3");
         if (config.readTimeoutMs < 0 || config.writeTimeoutMs < 0) return Status::Validation(ErrorInvalidParameter, "Configured timeouts cannot be negative");
 
+        if (config.logging) OpenLog();
+
         g_port = CreateFileA(path.c_str(), GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-        if (g_port == INVALID_HANDLE_VALUE) return Status::Win32Error("CreateFile", GetLastError());
+        if (g_port == INVALID_HANDLE_VALUE) return FailOpen(Status::Win32Error("CreateFile", GetLastError()));
 
         DCB dcb = { 0 };
         dcb.DCBlength = sizeof(dcb);
         if (!GetCommState(g_port, &dcb))
         {
-            Status result = Status::Win32Error("GetCommState", GetLastError());
-            ClosePortNoLock(); return result;
+            return FailOpen(Status::Win32Error("GetCommState", GetLastError()));
         }
         dcb.BaudRate = static_cast<DWORD>(config.baudRate);
         dcb.ByteSize = static_cast<BYTE>(config.dataBits);
@@ -260,8 +267,7 @@ namespace srcserial
         else if (config.flowControl == 3) { dcb.fOutxDsrFlow = TRUE; dcb.fDtrControl = DTR_CONTROL_HANDSHAKE; }
         if (!SetCommState(g_port, &dcb))
         {
-            Status result = Status::Win32Error("SetCommState", GetLastError());
-            ClosePortNoLock(); return result;
+            return FailOpen(Status::Win32Error("SetCommState", GetLastError()));
         }
 
         COMMTIMEOUTS timeouts = { 0 };
@@ -269,14 +275,12 @@ namespace srcserial
         timeouts.WriteTotalTimeoutConstant = static_cast<DWORD>(config.writeTimeoutMs);
         if (!SetCommTimeouts(g_port, &timeouts))
         {
-            Status result = Status::Win32Error("SetCommTimeouts", GetLastError());
-            ClosePortNoLock(); return result;
+            return FailOpen(Status::Win32Error("SetCommTimeouts", GetLastError()));
         }
         SetupComm(g_port, 65536, 65536);
         if (config.flushOnOpen && !PurgeComm(g_port, PURGE_RXCLEAR | PURGE_TXCLEAR))
         {
-            Status result = Status::Win32Error("PurgeComm", GetLastError());
-            ClosePortNoLock(); return result;
+            return FailOpen(Status::Win32Error("PurgeComm", GetLastError()));
         }
         g_flowControl = config.flowControl;
         g_readTimeoutMs = static_cast<DWORD>(config.readTimeoutMs);
@@ -342,7 +346,8 @@ namespace srcserial
         while (data.size() < maxChars)
         {
             const size_t before = data.size();
-            Status result = ReadAvailableNoLock(maxChars - static_cast<DWORD>(data.size()), &data);
+            const DWORD remaining = maxChars - static_cast<DWORD>(data.size());
+            Status result = ReadAvailableNoLock(terminator.empty() ? remaining : 1, &data);
             if (!result.success) return result;
             if (!terminator.empty() && EndsWith(data, terminator)) break;
             if (terminator.empty() && !data.empty())
@@ -391,6 +396,8 @@ namespace srcserial
         }
         SetCommTimeouts(g_port, &original);
         *bytesWritten = total;
+        if (result.success && total != count)
+            return Status::Win32Error("WriteFile", ERROR_TIMEOUT);
         return result;
     }
 

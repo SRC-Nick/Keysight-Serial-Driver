@@ -3,7 +3,7 @@
 ## Local automated checks
 
 Run `Test\build_v143.cmd` on the current developer machine. It builds the DLL
-and tools, regenerates all UMDs, tests pure parsing/validation behavior, loads
+and tools, inspects all UMDs, tests pure parsing/validation behavior, loads
 the DLL through the UTA runtime, checks structured closed-port errors, and
 lists PE exports/imports.
 
@@ -40,4 +40,3 @@ msbuild SRCSerial.sln /m /p:Configuration=Release /p:Platform=Win32
 - Record adapter serial number, driver version, COM assignment, electrical
   mode, baud settings, and results in the release validation record.
 - Tag `v0.1.0` only after both required electrical modes pass on the target.
-
