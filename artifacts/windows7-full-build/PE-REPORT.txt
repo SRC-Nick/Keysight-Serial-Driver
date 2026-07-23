@@ -1,0 +1,331 @@
+Microsoft (R) COFF/PE Dumper Version 14.41.34120.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+Dump of file C:\Users\ndapprich\OneDrive - SRC Electrical\Documents\Programming\Keysight Serial Driver\Release\SRCSerial.dll
+
+PE signature found
+
+File Type: DLL
+
+FILE HEADER VALUES
+             14C machine (x86)
+               5 number of sections
+        6A624D92 time date stamp Thu Jul 23 12:21:22 2026
+               0 file pointer to symbol table
+               0 number of symbols
+              E0 size of optional header
+            2102 characteristics
+                   Executable
+                   32 bit word machine
+                   DLL
+
+OPTIONAL HEADER VALUES
+             10B magic # (PE32)
+           14.41 linker version
+           33A00 size of code
+           11C00 size of initialized data
+               0 size of uninitialized data
+           16AA1 entry point (10016AA1) __DllMainCRTStartup@12
+            1000 base of code
+           35000 base of data
+        10000000 image base (10000000 to 10047FFF)
+            1000 section alignment
+             200 file alignment
+            6.00 operating system version
+            0.00 image version
+            6.00 subsystem version
+               0 Win32 version
+           48000 size of image
+             400 size of headers
+               0 checksum
+               2 subsystem (Windows GUI)
+             140 DLL characteristics
+                   Dynamic base
+                   NX compatible
+          100000 size of stack reserve
+            1000 size of stack commit
+          100000 size of heap reserve
+            1000 size of heap commit
+               0 loader flags
+              10 number of directories
+           41090 [     2CC] RVA [size] of Export Directory
+           4135C [      64] RVA [size] of Import Directory
+           44000 [     1E0] RVA [size] of Resource Directory
+               0 [       0] RVA [size] of Exception Directory
+               0 [       0] RVA [size] of Certificates Directory
+           45000 [    2A5C] RVA [size] of Base Relocation Directory
+           3DF30 [      70] RVA [size] of Debug Directory
+               0 [       0] RVA [size] of Architecture Directory
+               0 [       0] RVA [size] of Global Pointer Directory
+               0 [       0] RVA [size] of Thread Storage Directory
+           3DE70 [      40] RVA [size] of Load Configuration Directory
+               0 [       0] RVA [size] of Bound Import Directory
+           35000 [     1D0] RVA [size] of Import Address Table Directory
+               0 [       0] RVA [size] of Delay Import Directory
+               0 [       0] RVA [size] of COM Descriptor Directory
+               0 [       0] RVA [size] of Reserved Directory
+
+
+SECTION HEADER #1
+   .text name
+   33908 virtual size
+    1000 virtual address (10001000 to 10034907)
+   33A00 size of raw data
+     400 file pointer to raw data (00000400 to 00033DFF)
+       0 file pointer to relocation table
+       0 file pointer to line numbers
+       0 number of relocations
+       0 number of line numbers
+60000020 flags
+         Code
+         Execute Read
+
+SECTION HEADER #2
+  .rdata name
+    CE22 virtual size
+   35000 virtual address (10035000 to 10041E21)
+    D000 size of raw data
+   33E00 file pointer to raw data (00033E00 to 00040DFF)
+       0 file pointer to relocation table
+       0 file pointer to line numbers
+       0 number of relocations
+       0 number of line numbers
+40000040 flags
+         Initialized Data
+         Read Only
+
+  Debug Directories
+
+        Time Type        Size      RVA  Pointer
+    -------- ------- -------- -------- --------
+    6A624D92 cv            88 0003EB68    3D968    Format: RSDS, {46174423-BD00-4A89-991B-CD9CDA8606C0}, 1, C:\Users\ndapprich\OneDrive - SRC Electrical\Documents\Programming\Keysight Serial Driver\Release\SRCSerial.pdb
+    6A624D92 feat          14 0003EBF0    3D9F0    Counts: Pre-VC++ 11.00=0, C/C++=276, /GS=276, /sdl=5, guardN=270
+    6A624D92 coffgrp      328 0003EC04    3DA04    4C544347 (LTCG)
+    6A624D92 iltcg          0 00000000        0
+
+  Section contains the following exports for SRCSerial.dll
+
+    00000000 characteristics
+    FFFFFFFF time date stamp
+        0.00 version
+           1 ordinal base
+          21 number of functions
+          21 number of names
+
+    ordinal hint RVA      name
+
+          1    0 00006E80 SRCSerial_cancel = _SRCSerial_cancel@4
+          2    1 00006990 SRCSerial_drainTransmit = _SRCSerial_drainTransmit@4
+          3    2 00006C30 SRCSerial_enumeratePorts = _SRCSerial_enumeratePorts@4
+          4    3 00003820 SRCSerial_flush = _SRCSerial_flush@4
+          5    4 00001E10 SRCSerial_getBufferLength = _SRCSerial_getBufferLength@4
+          6    5 00004060 SRCSerial_getConfiguration = _SRCSerial_getConfiguration@4
+          7    6 000043B0 SRCSerial_getDiagnostics = _SRCSerial_getDiagnostics@4
+          8    7 00003BD0 SRCSerial_getLineStatus = _SRCSerial_getLineStatus@4
+          9    8 00003E00 SRCSerial_isOpen = _SRCSerial_isOpen@4
+         10    9 00006640 SRCSerial_pulseControlLine = _SRCSerial_pulseControlLine@4
+         11    A 00001FC0 SRCSerial_readBytes = _SRCSerial_readBytes@4
+         12    B 00004F20 SRCSerial_readHex = _SRCSerial_readHex@4
+         13    C 000024D0 SRCSerial_readString = _SRCSerial_readString@4
+         14    D 000046C0 SRCSerial_readUntilIdle = _SRCSerial_readUntilIdle@4
+         15    E 000039C0 SRCSerial_setControlLines = _SRCSerial_setControlLines@4
+         16    F 00001770 SRCSerial_start = _SRCSerial_start@4
+         17   10 00001C80 SRCSerial_stop = _SRCSerial_stop@4
+         18   11 00005410 SRCSerial_transact = _SRCSerial_transact@4
+         19   12 00002CA0 SRCSerial_writeBytes = _SRCSerial_writeBytes@4
+         20   13 00004C00 SRCSerial_writeHex = _SRCSerial_writeHex@4
+         21   14 00003240 SRCSerial_writeString = _SRCSerial_writeString@4
+
+  Section contains the following imports:
+
+    utacore.dll
+              100351B0 Import Address Table
+              10041570 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                  2D6 _UtaI32ArrGetBuffer@4
+                  30D _UtaInt32SetValue@8
+                   D6 _UtaArrayGetSize@4
+                  4A8 _UtaPbFindData@8
+                  4C6 _UtaPbGetString@16
+                  5A6 _UtaStringSetValue@8
+                  4B1 _UtaPbGetInt32@12
+
+    SETUPAPI.dll
+              10035194 Import Address Table
+              10041554 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                  171 SetupDiGetDeviceRegistryPropertyA
+                  140 SetupDiEnumDeviceInfo
+                  168 SetupDiGetDeviceInstanceIdA
+                  191 SetupDiOpenDevRegKey
+                  151 SetupDiGetClassDevsA
+                  13D SetupDiDestroyDeviceInfoList
+
+    KERNEL32.dll
+              1003500C Import Address Table
+              100413CC Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                  36C HeapSize
+                   DA CreateFileW
+                  570 SetStdHandle
+                  2CD GetProcessHeap
+                  1BE FreeEnvironmentStringsW
+                  24C GetEnvironmentStringsW
+                  1EB GetCommandLineW
+                  1EA GetCommandLineA
+                  2AF GetOEMCP
+                  1C6 GetACP
+                  3AB IsValidCodePage
+                  130 DisableThreadLibraryCalls
+                  277 GetLastError
+                  494 ReadFile
+                  28A GetModuleFileNameA
+                  145 EnterCriticalSection
+                  63A WriteFile
+                  45D PurgeComm
+                  1E6 GetCommModemStatus
+                  3DD LeaveCriticalSection
+                  639 WriteConsoleW
+                  5FF WaitForSingleObject
+                  5A0 SetupComm
+                  5A4 Sleep
+                  171 EscapeCommFunction
+                   D2 CreateFileA
+                  1E8 GetCommState
+                   94 CloseHandle
+                   80 CancelIoEx
+                   92 ClearCommError
+                  278 GetLocalTime
+                  2B0 GetOverlappedResult
+                  3EF LocalFree
+                  122 DeleteCriticalSection
+                  22D GetCurrentProcessId
+                   C4 CreateDirectoryA
+                  1BA FormatMessageA
+                   CB CreateEventA
+                  503 SetCommTimeouts
+                  325 GetTickCount
+                  502 SetCommState
+                  1A0 FindNextFileW
+                  532 SetEndOfFile
+                  37C InitializeCriticalSection
+                  39D IsDebuggerPresent
+                  626 WideCharToMultiByte
+                  37E InitializeCriticalSectionEx
+                  141 EncodePointer
+                  11B DecodePointer
+                  40F MultiByteToWideChar
+                  3D0 LCMapStringEx
+                  2F1 GetStringTypeW
+                  1D5 GetCPInfo
+                  3A5 IsProcessorFeaturePresent
+                  5D5 UnhandledExceptionFilter
+                  594 SetUnhandledExceptionFilter
+                  22C GetCurrentProcess
+                  5B4 TerminateProcess
+                  2EA GetStartupInfoW
+                  28F GetModuleHandleW
+                  46D QueryPerformanceCounter
+                  231 GetCurrentThreadId
+                  303 GetSystemTimeAsFileTime
+                  381 InitializeSListHead
+                  4F5 RtlUnwind
+                  483 RaiseException
+                  38A InterlockedFlushSList
+                  555 SetLastError
+                  37D InitializeCriticalSectionAndSpinCount
+                  5C6 TlsAlloc
+                  5C8 TlsGetValue
+                  5C9 TlsSetValue
+                  5C7 TlsFree
+                  1BF FreeLibrary
+                  2C6 GetProcAddress
+                  3E3 LoadLibraryExW
+                  172 ExitProcess
+                  28E GetModuleHandleExW
+                  28B GetModuleFileNameW
+                  367 HeapFree
+                  545 SetFilePointerEx
+                  210 GetConsoleMode
+                  491 ReadConsoleW
+                  2EC GetStdHandle
+                  263 GetFileType
+                  261 GetFileSizeEx
+                  363 HeapAlloc
+                  1B3 FlushFileBuffers
+                  214 GetConsoleOutputCP
+                  3D1 LCMapStringW
+                  27B GetLocaleInfoW
+                  3AD IsValidLocale
+                  330 GetUserDefaultLCID
+                  168 EnumSystemLocalesW
+                  36A HeapReAlloc
+                  189 FindClose
+                  18F FindFirstFileExW
+
+    ADVAPI32.dll
+              10035000 Import Address Table
+              100413C0 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                  28E RegQueryValueExA
+                  251 RegCloseKey
+
+SECTION HEADER #3
+   .data name
+    1D58 virtual size
+   42000 virtual address (10042000 to 10043D57)
+    1000 size of raw data
+   40E00 file pointer to raw data (00040E00 to 00041DFF)
+       0 file pointer to relocation table
+       0 file pointer to line numbers
+       0 number of relocations
+       0 number of line numbers
+C0000040 flags
+         Initialized Data
+         Read Write
+
+SECTION HEADER #4
+   .rsrc name
+     1E0 virtual size
+   44000 virtual address (10044000 to 100441DF)
+     200 size of raw data
+   41E00 file pointer to raw data (00041E00 to 00041FFF)
+       0 file pointer to relocation table
+       0 file pointer to line numbers
+       0 number of relocations
+       0 number of line numbers
+40000040 flags
+         Initialized Data
+         Read Only
+
+SECTION HEADER #5
+  .reloc name
+    2A5C virtual size
+   45000 virtual address (10045000 to 10047A5B)
+    2C00 size of raw data
+   42000 file pointer to raw data (00042000 to 00044BFF)
+       0 file pointer to relocation table
+       0 file pointer to line numbers
+       0 number of relocations
+       0 number of line numbers
+42000040 flags
+         Initialized Data
+         Discardable
+         Read Only
+
+  Summary
+
+        2000 .data
+        D000 .rdata
+        3000 .reloc
+        1000 .rsrc
+       34000 .text

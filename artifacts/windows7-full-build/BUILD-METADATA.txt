@@ -1,0 +1,16 @@
+SRCSerial Win32 build metadata
+SourceCommit=fd631fa3b40ca80d99393c990099c051ddb5cbfa
+SourceBranch=windows7-full-build
+BuildTimeUtc=2026-07-23T17:21:25Z
+Configuration=Release
+Platform=Win32
+PlatformToolset=v143
+MSBuildVersion=17.11.2.32701
+RuntimeLibrary=Static
+MinimumConfiguredWindowsVersion=0x0601
+HardwareQualified=No
+TestExecWindows7Qualified=No
+
+This package passed the repository's local self-tests, DLL/UTA smoke test,
+UMD restore inspection, and export checks. It still requires acceptance on
+the target Windows 7/TestExec station and physical RS-232/RS-485 hardware.
