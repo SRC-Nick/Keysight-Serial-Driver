@@ -24,7 +24,7 @@ namespace srcserial
         {
             return defaultValue ? defaultValue : "";
         }
-        char value[4096] = { 0 };
+        char value[32768] = { 0 };
         UtaPbGetString(block, name, value, static_cast<int>(sizeof(value)));
         return value;
     }

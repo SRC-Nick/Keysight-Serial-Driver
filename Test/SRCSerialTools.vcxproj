@@ -10,10 +10,9 @@
   <PropertyGroup><OutDir>.\Release\</OutDir><IntDir>.\Release\obj\</IntDir></PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile><WarningLevel>Level4</WarningLevel><RuntimeLibrary>MultiThreaded</RuntimeLibrary><PreprocessorDefinitions>WIN32;NDEBUG;_WIN32_WINNT=0x0601;WINVER=0x0601;%(PreprocessorDefinitions)</PreprocessorDefinitions><AdditionalIncludeDirectories>..;C:\Program Files (x86)\Agilent\TestExec SL 7.1\Include;C:\Program Files (x86)\Agilent\TS-5000 System Software\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories></ClCompile>
-    <Link><SubSystem>Console</SubSystem><AdditionalLibraryDirectories>C:\Program Files (x86)\Agilent\TestExec SL 7.1\Lib;C:\Program Files (x86)\Agilent\TS-5000 System Software\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories><AdditionalDependencies>utacore.lib;%(AdditionalDependencies)</AdditionalDependencies></Link>
+    <Link><SubSystem>Console</SubSystem><AdditionalLibraryDirectories>C:\Program Files (x86)\Agilent\TestExec SL 7.1\Lib;C:\Program Files (x86)\Agilent\TS-5000 System Software\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories><AdditionalDependencies>utacore.lib;setupapi.lib;%(AdditionalDependencies)</AdditionalDependencies></Link>
   </ItemDefinitionGroup>
-  <ItemGroup><ClCompile Include="SRCSerialTools.cpp" /><ClCompile Include="..\src\SRCSerial_Port.cpp" /></ItemGroup>
+  <ItemGroup><ClCompile Include="SRCSerialTools.cpp" /><ClCompile Include="..\src\SRCSerial_Enumeration.cpp" /><ClCompile Include="..\src\SRCSerial_Port.cpp" /></ItemGroup>
   <ItemGroup><ClInclude Include="..\src\SRCSerial_Internal.h" /></ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
-

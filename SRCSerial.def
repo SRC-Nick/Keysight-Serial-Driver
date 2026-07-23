@@ -10,4 +10,14 @@ EXPORTS
     SRCSerial_flush
     SRCSerial_setControlLines
     SRCSerial_getLineStatus
-
+    SRCSerial_isOpen
+    SRCSerial_getConfiguration
+    SRCSerial_getDiagnostics
+    SRCSerial_readUntilIdle
+    SRCSerial_transact
+    SRCSerial_writeHex
+    SRCSerial_readHex
+    SRCSerial_pulseControlLine
+    SRCSerial_drainTransmit
+    SRCSerial_enumeratePorts
+    SRCSerial_cancel

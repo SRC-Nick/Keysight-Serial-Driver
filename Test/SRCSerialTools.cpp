@@ -75,6 +75,7 @@ namespace
         p.push_back(String("Port", "COM1")); p.push_back(Int32("BaudRate", 9600));
         p.push_back(Int32("DataBits", 8)); p.push_back(Int32("StopBits", 1));
         p.push_back(Int32("Parity", 0)); p.push_back(Int32("FlowControl", 0));
+        p.push_back(Int32("DTRMode", -1)); p.push_back(Int32("RTSMode", -1));
         p.push_back(Int32("ReadTimeoutMs", 1000)); p.push_back(Int32("WriteTimeoutMs", 1000));
         p.push_back(Int32("FlushOnOpen", 1)); p.push_back(Int32("Logging", 0)); AddCommon(&p);
         if (!SaveAction("SRCSerial_start", p)) return false;
@@ -111,7 +112,66 @@ namespace
 
         p.clear(); p.push_back(Int32("CTS", 0, true)); p.push_back(Int32("DSR", 0, true));
         p.push_back(Int32("DCD", 0, true)); p.push_back(Int32("Ring", 0, true)); AddCommon(&p);
-        return SaveAction("SRCSerial_getLineStatus", p);
+        if (!SaveAction("SRCSerial_getLineStatus", p)) return false;
+
+        p.clear(); p.push_back(Int32("Open", 0, true)); p.push_back(String("Port", "", true));
+        AddCommon(&p); if (!SaveAction("SRCSerial_isOpen", p)) return false;
+
+        p.clear(); p.push_back(Int32("Open", 0, true)); p.push_back(String("Port", "", true));
+        p.push_back(Int32("BaudRate", 0, true)); p.push_back(Int32("DataBits", 0, true));
+        p.push_back(Int32("StopBits", 0, true)); p.push_back(Int32("Parity", 0, true));
+        p.push_back(Int32("FlowControl", 0, true)); p.push_back(Int32("DTRMode", 0, true));
+        p.push_back(Int32("RTSMode", 0, true)); p.push_back(Int32("ReadTimeoutMs", 0, true));
+        p.push_back(Int32("WriteTimeoutMs", 0, true)); p.push_back(Int32("Logging", 0, true));
+        AddCommon(&p); if (!SaveAction("SRCSerial_getConfiguration", p)) return false;
+
+        p.clear(); p.push_back(Int32("ResetAfterRead", 0));
+        p.push_back(Int32("FrameErrors", 0, true)); p.push_back(Int32("ParityErrors", 0, true));
+        p.push_back(Int32("OverrunErrors", 0, true)); p.push_back(Int32("BufferOverrunErrors", 0, true));
+        p.push_back(Int32("BreakCount", 0, true)); p.push_back(Int32("RxBytesQueued", 0, true));
+        p.push_back(Int32("TxBytesQueued", 0, true)); p.push_back(Int32("TotalRxBytes", 0, true));
+        p.push_back(Int32("TotalTxBytes", 0, true)); p.push_back(Int32("LastWin32Error", 0, true));
+        AddCommon(&p); if (!SaveAction("SRCSerial_getDiagnostics", p)) return false;
+
+        p.clear(); p.push_back(Int32("MaxBytes", 4096)); p.push_back(Int32("TimeoutMs", -1));
+        p.push_back(Int32("InterByteTimeoutMs", 20)); p.push_back(Int32Array("Data", 4096, true));
+        p.push_back(String("Hex", "", true)); p.push_back(Int32("BytesRead", 0, true));
+        p.push_back(Int32("TimedOut", 0, true)); AddCommon(&p);
+        if (!SaveAction("SRCSerial_readUntilIdle", p)) return false;
+
+        p.clear(); p.push_back(Int32("RequestFormat", 0)); p.push_back(String("RequestText", ""));
+        p.push_back(String("RequestSuffix", "")); p.push_back(String("RequestHex", ""));
+        p.push_back(Int32Array("RequestData", 4096)); p.push_back(Int32("RequestCount", 0));
+        p.push_back(Int32("FlushBeforeWrite", 1)); p.push_back(Int32("ResponseMode", 0));
+        p.push_back(Int32("ResponseCount", 0)); p.push_back(String("Terminator", ""));
+        p.push_back(Int32("TimeoutMs", -1)); p.push_back(Int32("InterByteTimeoutMs", 20));
+        p.push_back(Int32("PreTransmitDelayMs", 0)); p.push_back(Int32("PostTransmitDelayMs", 0));
+        p.push_back(Int32("Retries", 0)); p.push_back(Int32Array("ResponseData", 4096, true));
+        p.push_back(String("ResponseHex", "", true)); p.push_back(Int32("BytesWritten", 0, true));
+        p.push_back(Int32("BytesRead", 0, true)); p.push_back(Int32("TimedOut", 0, true));
+        p.push_back(Int32("Attempts", 0, true)); AddCommon(&p);
+        if (!SaveAction("SRCSerial_transact", p)) return false;
+
+        p.clear(); p.push_back(String("Hex", "")); p.push_back(Int32("TimeoutMs", -1));
+        p.push_back(Int32("BytesWritten", 0, true)); AddCommon(&p);
+        if (!SaveAction("SRCSerial_writeHex", p)) return false;
+
+        p.clear(); p.push_back(Int32("RequestedCount", 0)); p.push_back(Int32("MaxBytes", 1024));
+        p.push_back(Int32("TimeoutMs", -1)); p.push_back(String("Hex", "", true));
+        p.push_back(Int32("BytesRead", 0, true)); p.push_back(Int32("TimedOut", 0, true));
+        AddCommon(&p); if (!SaveAction("SRCSerial_readHex", p)) return false;
+
+        p.clear(); p.push_back(Int32("Line", 0)); p.push_back(Int32("State", 0));
+        p.push_back(Int32("DurationMs", 100)); p.push_back(Int32("RestoreState", -1));
+        AddCommon(&p); if (!SaveAction("SRCSerial_pulseControlLine", p)) return false;
+
+        p.clear(); p.push_back(Int32("TimeoutMs", -1)); p.push_back(Int32("TimedOut", 0, true));
+        AddCommon(&p); if (!SaveAction("SRCSerial_drainTransmit", p)) return false;
+
+        p.clear(); p.push_back(String("Ports", "", true)); p.push_back(Int32("Count", 0, true));
+        AddCommon(&p); if (!SaveAction("SRCSerial_enumeratePorts", p)) return false;
+
+        p.clear(); AddCommon(&p); return SaveAction("SRCSerial_cancel", p);
     }
 
     bool Inspect(const char* fileName)
@@ -151,6 +211,42 @@ namespace
         ok &= Check(status.success && bytes.size() == sizeof(expected) && std::memcmp(&bytes[0], expected, sizeof(expected)) == 0, "decode escapes");
         status = srcserial::DecodeEscapes("\\q", &bytes);
         ok &= Check(!status.success, "reject bad escape");
+        status = srcserial::DecodeHex("02 31:ff,0x7A", &bytes);
+        const unsigned char expectedHex[] = { 0x02, 0x31, 0xff, 0x7a };
+        ok &= Check(status.success && bytes.size() == sizeof(expectedHex) &&
+            std::memcmp(&bytes[0], expectedHex, sizeof(expectedHex)) == 0, "decode hex");
+        ok &= Check(srcserial::FormatHex(expectedHex, sizeof(expectedHex)) ==
+            "02 31 FF 7A", "format hex");
+        status = srcserial::DecodeHex("0", &bytes);
+        ok &= Check(!status.success && status.code == srcserial::ErrorInvalidHex,
+            "reject incomplete hex");
+        bool open = true;
+        std::string port;
+        status = srcserial::IsOpen(&open, &port);
+        ok &= Check(status.success && !open && port.empty(), "closed session query");
+        srcserial::Diagnostics diagnostics;
+        status = srcserial::GetDiagnostics(&diagnostics, false);
+        ok &= Check(status.success && diagnostics.totalRxBytes == 0,
+            "closed diagnostics query");
+        srcserial::PortConfig invalidConfig;
+        invalidConfig.dataBits = 8;
+        invalidConfig.stopBits = 15;
+        status = srcserial::Start(invalidConfig);
+        ok &= Check(!status.success && status.code == srcserial::ErrorInvalidParameter,
+            "reject invalid framing combination");
+        std::vector<unsigned char> idleData;
+        bool timedOut = false;
+        status = srcserial::ReadUntilIdle(16, 10, 2, &idleData, &timedOut);
+        ok &= Check(!status.success && status.code == srcserial::ErrorNotOpen,
+            "idle read requires open session");
+        status = srcserial::DrainTransmit(10, &timedOut);
+        ok &= Check(!status.success && status.code == srcserial::ErrorNotOpen,
+            "drain requires open session");
+        ok &= Check(srcserial::CancelPending().success, "cancel is safe while closed");
+        std::string ports;
+        DWORD portCount = 0;
+        status = srcserial::EnumeratePorts(&ports, &portCount);
+        ok &= Check(status.success, "enumerate present COM ports");
         DWORD available = 123;
         status = srcserial::GetBufferLength(&available);
         ok &= Check(!status.success && status.code == srcserial::ErrorNotOpen && available == 0, "closed port status");
@@ -165,7 +261,20 @@ namespace
         if (!Check(dll != NULL, "load SRCSerial.dll")) return false;
         ActionRoutine stop = reinterpret_cast<ActionRoutine>(GetProcAddress(dll, "SRCSerial_stop"));
         ActionRoutine getLength = reinterpret_cast<ActionRoutine>(GetProcAddress(dll, "SRCSerial_getBufferLength"));
-        bool ok = Check(stop != NULL && getLength != NULL, "resolve action exports");
+        const char* exports[] = {
+            "SRCSerial_start", "SRCSerial_stop", "SRCSerial_getBufferLength",
+            "SRCSerial_readBytes", "SRCSerial_readString", "SRCSerial_writeBytes",
+            "SRCSerial_writeString", "SRCSerial_flush", "SRCSerial_setControlLines",
+            "SRCSerial_getLineStatus", "SRCSerial_isOpen", "SRCSerial_getConfiguration",
+            "SRCSerial_getDiagnostics", "SRCSerial_readUntilIdle", "SRCSerial_transact",
+            "SRCSerial_writeHex", "SRCSerial_readHex", "SRCSerial_pulseControlLine",
+            "SRCSerial_drainTransmit", "SRCSerial_enumeratePorts", "SRCSerial_cancel"
+        };
+        bool allExports = true;
+        for (size_t i = 0; i < sizeof(exports) / sizeof(exports[0]); ++i)
+            allExports &= GetProcAddress(dll, exports[i]) != NULL;
+        bool ok = Check(stop != NULL && getLength != NULL && allExports,
+            "resolve all action exports");
         HUTAPBDEF definition = UtaPbDefCreate();
         std::vector<ParmSpec> parms;
         parms.push_back(Int32("BytesAvailable", 99, true)); AddCommon(&parms);
