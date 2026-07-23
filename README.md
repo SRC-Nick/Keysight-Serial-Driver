@@ -165,6 +165,10 @@ electrically with appropriate test equipment.
   test.
 - `Test/README.md`: standalone console-test commands, prerequisites, expected
   output, scope, and limitations.
+- `Scripts/Build-Win32Package.ps1`: reproducible Win32 build, validation,
+  packaging, metadata, ZIP, and SHA-256 generation.
+- `Docs/FULL_BUILD_BRANCH.md`: layout and deployment instructions for the
+  compiled-artifact branch.
 - `Docs/HARDWARE_SETUP.md`: adapter, wiring, and deployment procedure.
 - `Docs/TESTING.md`: local, loopback, RS-485, and Windows 7 acceptance tests.
 
@@ -186,6 +190,89 @@ Test\build_v143.cmd
 
 That is a compatibility build, not the Windows 7 release artifact. Hardware
 acceptance and the final release must use the pinned v142 toolset.
+
+Create a complete transferable package with v142:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File Scripts\Build-Win32Package.ps1 -Toolset v142
+```
+
+Until v142 is installed on this development PC, a clearly marked v143
+compatibility candidate can be created with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File Scripts\Build-Win32Package.ps1 -Toolset v143
+```
+
+The package records its source commit, compiler toolset, MSBuild version,
+platform, runtime linkage, and qualification state in `BUILD-METADATA.txt`.
+
+## Git branches and downloading
+
+The repository uses two long-lived branches:
+
+- `main`: source code, projects, tests, UMD definitions, scripts, and
+  documentation. Generated compiler/linker artifacts are ignored.
+- `windows7-full-build`: everything in `main` plus a build snapshot under
+  `artifacts/windows7-full-build`, a transferable ZIP, symbols, import
+  libraries, build metadata, and SHA-256 checksums.
+
+Clone only the source branch:
+
+```powershell
+git clone --branch main --single-branch https://github.com/SRC-Nick/Keysight-Serial-Driver.git
+```
+
+Clone the complete build branch:
+
+```powershell
+git clone --branch windows7-full-build --single-branch https://github.com/SRC-Nick/Keysight-Serial-Driver.git
+```
+
+If the repository is already cloned:
+
+```powershell
+git fetch origin windows7-full-build
+git checkout windows7-full-build
+git pull --ff-only origin windows7-full-build
+```
+
+Return to the source branch with:
+
+```powershell
+git checkout main
+git pull --ff-only origin main
+```
+
+This is a private repository. For an HTTPS clone, enter the GitHub username when
+prompted and use a personal access token with read access to this repository in
+place of a password. Do not put the token directly in a command, script, or
+remote URL. GitHub documents this process under
+[managing personal access tokens](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens).
+
+Current Git for Windows releases no longer support Windows 7. The official
+[Git for Windows requirements](https://gitforwindows.org/requirements.html)
+identify v2.46.2 as the last Windows 7-compatible release. Because that version
+no longer receives normal platform support, the preferred station workflow is:
+
+1. Clone or download `windows7-full-build` on a maintained development PC.
+2. Verify the ZIP SHA-256.
+3. Copy the package to the Windows 7 station using approved removable media or
+   the station's controlled file-transfer process.
+4. Deploy only the contents under `deploy`; no Git or compiler is required on
+   the station.
+
+If Git must be installed directly on the Windows 7 machine, use v2.46.2 from
+the official Git for Windows release archive and authenticate the private clone
+with a narrowly scoped read-only token. Treat both the obsolete operating
+system and its final supported Git client as additional security exposure.
+
+When signed into GitHub in a browser, the full branch can also be downloaded
+without Git from:
+
+```text
+https://github.com/SRC-Nick/Keysight-Serial-Driver/archive/refs/heads/windows7-full-build.zip
+```
 
 ## TestExec installation
 

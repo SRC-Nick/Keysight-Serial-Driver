@@ -17,3 +17,9 @@
   text/hex/byte-array transactions with delays and timeout retries.
 - Expanded the Action Wizard reference with every parameter, direction,
   default, enum, array bound, and usage example.
+- Added a reproducible Win32 package builder and a separate
+  `windows7-full-build` branch workflow for checked, transferable DLL, UMD,
+  symbol, test-tool, metadata, PE-report, ZIP, and checksum artifacts.
+- Documented source/full-build cloning, private-repository authentication, the
+  final Git for Windows version supporting Windows 7, and a preferred
+  no-build/no-Git station deployment workflow.
