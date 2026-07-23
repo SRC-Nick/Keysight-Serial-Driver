@@ -163,6 +163,8 @@ electrically with appropriate test equipment.
 - `actions`: generated UMDs plus the complete recreation reference.
 - `Test/SRCSerialTools.cpp`: UMD generator/inspector, unit tests, and DLL smoke
   test.
+- `Test/README.md`: standalone console-test commands, prerequisites, expected
+  output, scope, and limitations.
 - `Docs/HARDWARE_SETUP.md`: adapter, wiring, and deployment procedure.
 - `Docs/TESTING.md`: local, loopback, RS-485, and Windows 7 acceptance tests.
 
