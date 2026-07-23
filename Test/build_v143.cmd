@@ -11,9 +11,15 @@ Test\Release\SRCSerialTools.exe self-test
 if errorlevel 1 exit /b 1
 Test\Release\SRCSerialTools.exe action-smoke Release\SRCSerial.dll
 if errorlevel 1 exit /b 1
+set /a UMD_COUNT=0
 for %%F in (actions\SRCSerial_*.umd) do (
+  set /a UMD_COUNT+=1
   Test\Release\SRCSerialTools.exe inspect "%%F"
   if errorlevel 1 exit /b 1
+)
+if not "%UMD_COUNT%"=="21" (
+  echo Expected 21 UMD files but found %UMD_COUNT%.
+  exit /b 1
 )
 where dumpbin >nul 2>nul
 if not errorlevel 1 (

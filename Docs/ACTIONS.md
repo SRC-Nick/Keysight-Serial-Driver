@@ -1,80 +1,39 @@
 # TestExec action contract
 
-All actions are standard C actions exported from `SRCSerial.dll`. Parameters
-marked output are written by the action. Every action includes these outputs:
+The complete Action Wizard recreation contract—including exact parameter order,
+UTA types, directions, defaults, enum values, array bounds, and examples—is
+maintained in [`../actions/README.md`](../actions/README.md). That document and
+the checked-in UMD files are the authoritative public interface.
 
-- `Success` (Int32): 1 for a completed operation, otherwise 0.
-- `ErrorCode` (Int32): zero, a Win32 error, or a negative validation error.
-- `ErrorMessage` (String): empty on success.
+All exports are standard C actions in `SRCSerial.dll`, use `UTAAPI` with an
+`HUTAPB` parameter block, and contain exceptions at the action boundary. Every
+action returns output `Success`, `ErrorCode`, and `ErrorMessage`; no action
+displays a modal dialog.
 
-## SRCSerial_start
+## Action groups
 
-Closes any existing session, then opens and configures a single COM port. A
-failed open leaves the driver closed.
+- Session/discovery: `start`, `stop`, `cancel`, `isOpen`,
+  `getConfiguration`, `enumeratePorts`.
+- Receive: `getBufferLength`, `readBytes`, `readString`, `readUntilIdle`,
+  `readHex`.
+- Transmit/transaction: `writeBytes`, `writeString`, `writeHex`, `transact`.
+- Queues/control: `flush`, `drainTransmit`, `setControlLines`,
+  `pulseControlLine`, `getLineStatus`.
+- Health: `getDiagnostics`.
 
-| Parameter | Type | Default | Meaning |
-|---|---:|---:|---|
-| Port | String | COM1 | COM1 through COM999; `\\.\COMn` is also accepted. |
-| BaudRate | Int32 | 9600 | Positive baud rate supported by the adapter. |
-| DataBits | Int32 | 8 | 5 through 8. |
-| StopBits | Int32 | 1 | 1=one, 15=one-and-a-half, 2=two. |
-| Parity | Int32 | 0 | 0=none, 1=odd, 2=even, 3=mark, 4=space. |
-| FlowControl | Int32 | 0 | 0=none, 1=XON/XOFF, 2=RTS/CTS, 3=DTR/DSR. |
-| ReadTimeoutMs | Int32 | 1000 | Default read deadline. |
-| WriteTimeoutMs | Int32 | 1000 | Default write deadline. |
-| FlushOnOpen | Int32 | 1 | Nonzero clears receive and transmit queues. |
-| Logging | Int32 | 0 | Nonzero creates a log beneath `logs` beside the DLL. |
+## Important semantic distinctions
 
-## SRCSerial_stop
-
-Purges and closes the session. Calling it while closed succeeds.
-
-## SRCSerial_getBufferLength
-
-Returns the current Windows input-queue size in output `BytesAvailable`.
-Nothing is consumed.
-
-## SRCSerial_readBytes
-
-- `RequestedCount` (Int32): positive waits for that many bytes; zero takes a
-  nonblocking snapshot of all currently queued bytes up to array capacity.
-- `TimeoutMs` (Int32): `-1` uses the start-time default; zero is nonblocking.
-- `Data` (Int32 array output): unsigned byte values `0..255`.
-- `BytesRead`, `TimedOut` (Int32 outputs): partial reads are retained.
-
-The generated UMD provides 4096 array elements. Regenerate the UMD or edit its
-array definition in Action Wizard when a larger individual transfer is needed.
-
-## SRCSerial_readString
-
-- `MaxChars` (Int32, default 1024): maximum received byte count.
-- `Terminator` (String): optional escaped byte sequence.
-- `TimeoutMs` (Int32, default -1): per-call timeout.
-- `IncludeTerminator` (Int32): nonzero retains the matched terminator.
-- `Text` (String output), `BytesRead`, `TimedOut` (Int32 outputs).
-
-With an empty terminator, the action waits for the first byte and then returns
-the currently available group. A NUL byte fails with `-1004`; use `readBytes`
-for binary data.
-
-## Write actions
-
-`SRCSerial_writeBytes` accepts `Data`, `Count`, and `TimeoutMs`, validates each
-element as `0..255`, and returns `BytesWritten`.
-
-`SRCSerial_writeString` accepts `Text`, an escaped `Suffix`, and `TimeoutMs`,
-then returns `BytesWritten`. Strings are transmitted as TestExec's narrow bytes
-without Unicode transcoding.
-
-Supported escapes are `\r`, `\n`, `\t`, `\\`, and `\xNN`.
-
-## Maintenance and status actions
-
-- `SRCSerial_flush`: `FlushMask` 1=receive, 2=transmit, 3=both.
-- `SRCSerial_setControlLines`: `DTR`, `RTS`, and `Break` use -1=unchanged,
-  0=clear, 1=set. Manual RTS or DTR is rejected when its handshake owns it.
-- `SRCSerial_getLineStatus`: output `CTS`, `DSR`, `DCD`, and `Ring`. The Moxa
-  UPort 1150I does not expose RI, so `Ring` is expected to remain zero there.
+- `flush` purges queued data; `drainTransmit` waits for queued output.
+- A read/drain/transaction response timeout normally returns `Success=1` with
+  `TimedOut=1`; a partial write is an error.
+- `readUntilIdle` is the generic choice for devices whose only frame boundary
+  is a quiet interval.
+- `transact` keeps write/read atomic relative to other serial actions and
+  retries only response timeouts.
+- `cancel` is lock-free so a parallel TestExec cleanup path can interrupt an
+  action holding the session lock.
+- `getDiagnostics` accumulates Windows framing, parity, overrun, buffer-overrun,
+  and break observations that would otherwise be cleared by `ClearCommError`.
 
 ## Validation errors
 
@@ -82,8 +41,9 @@ Supported escapes are `\r`, `\n`, `\t`, `\\`, and `\xNN`.
 |---:|---|
 | -1001 | Invalid or missing parameter. |
 | -1002 | No COM port is open. |
-| -1003 | Requested read exceeds the output array. |
-| -1004 | Binary NUL encountered by the string API. |
-| -1005 | Manual line control conflicts with handshake mode. |
+| -1003 | Request or response exceeds its UMD array. |
+| -1004 | NUL encountered by a string action. |
+| -1005 | Manual line control conflicts with handshake ownership. |
+| -1006 | Invalid hexadecimal input. |
+| -1007 | Text output is too large. |
 | -1099 | Unexpected exception contained at the DLL boundary. |
-

@@ -21,6 +21,9 @@ second endpoint.
    shown on Moxa's download page before moving it to the offline tester.
 2. Install the driver before connecting the USB cable.
 3. Connect the adapter, open Device Manager, and assign a stable COM number.
+   Record the adapter serial number. `SRCSerial_enumeratePorts` can report the
+   Windows device-instance ID and location so the station can verify that the
+   intended adapter is present even if Windows changes its COM number.
 4. In the Moxa port configuration, select RS-232, RS-422, RS-485 2-wire, or
    RS-485 4-wire. The default is RS-232.
 5. For RS-485, configure termination and bias DIP switches for the actual bus.
@@ -41,10 +44,9 @@ between all vendors.
 ## TestExec deployment and rollback
 
 1. Back up the station's TestExec search-path configuration.
-2. Copy `SRCSerial.dll` and all ten `.umd` files to controlled deployment
+2. Copy `SRCSerial.dll` and all 21 `.umd` files to controlled deployment
    folders and add those folders under TestExec System Options.
-3. Restart TestExec and confirm the ten `SRCSerial_*` actions are visible.
+3. Restart TestExec and confirm the 21 `SRCSerial_*` actions are visible.
 4. Run the smoke and loopback plans from `Docs/TESTING.md`.
 5. To roll back, remove the new search paths/files and restore the saved system
    configuration. The installation does not replace TestExec's `scomm` files.
-
