@@ -7,7 +7,7 @@ contains the complete source tree plus compiled Win32 artifacts beneath
 ## Deployment contents
 
 - `deploy\SRCSerial.dll`: 32-bit statically linked TestExec action DLL.
-- `deploy\actions`: all 21 TestExec UMD definitions and their reference.
+- `deploy\actions`: all 23 TestExec UMD definitions and their reference.
 - `deploy\README.md`, `HARDWARE_SETUP.md`, and `TESTING.md`: operating,
   deployment, and acceptance documentation.
 - `tools\SRCSerialTools.exe`: console UTA test/inspection utility.

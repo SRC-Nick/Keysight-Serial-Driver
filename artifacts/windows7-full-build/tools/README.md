@@ -54,8 +54,8 @@ The script:
 1. Builds `SRCSerial.dll` and `SRCSerialTools.exe` as Win32 release binaries.
 2. Runs the pure and closed-session self-tests.
 3. Loads the actual DLL and performs the UTA action smoke test.
-4. Restores and inspects all 21 checked-in UMD files.
-5. Fails if the UMD count is not exactly 21.
+4. Restores and inspects all 23 checked-in UMD files.
+5. Fails if the UMD count is not exactly 23.
 6. Uses `dumpbin`, when available, to display the DLL machine type, exports,
    and imports.
 
@@ -75,8 +75,8 @@ It should also report:
 
 ```text
 14C machine (x86)
-21 number of functions
-21 number of names
+23 number of functions
+23 number of names
 ```
 
 ## Individual commands
@@ -114,7 +114,7 @@ Test\Release\SRCSerialTools.exe action-smoke Release\SRCSerial.dll
 This command:
 
 - Loads the actual DLL.
-- Verifies all 21 exports.
+- Verifies all 23 exports.
 - Creates and binds a real UTA parameter block.
 - Calls `SRCSerial_getBufferLength` while closed.
 - Verifies the structured `Success=0, ErrorCode=-1002` response.
@@ -157,6 +157,22 @@ Example:
 name=SRCSerial_transact class=CUtaStdCMeasDef library=SRCSerial.dll
 entry[8]=SRCSerial_transact
 parameters=24
+```
+
+### Probe an installed Moxa adapter
+
+```powershell
+Test\Release\SRCSerialTools.exe moxa-probe COM1
+```
+
+This is read-only. It enumerates the observed `MXUPORT\COM` registry structure,
+matches `PortName`, and prints the interface mode, `TxMode`, instance ID, and
+driver version. It does not write the registry or refresh the device.
+
+Example from the development machine:
+
+```text
+port=COM1 found=1 interfaceMode=2 txMode=1 instance=MXUPORT\COM\a&28182273&0&0000 driver=4.3.0.0
 ```
 
 ## Testing without the TestExec application

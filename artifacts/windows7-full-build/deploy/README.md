@@ -4,7 +4,9 @@
 industrial serial devices exposed as Windows COM ports. It uses only the Win32
 COM-port and device-enumeration APIs, so it works with built-in UARTs, USB
 adapters, PCI/PCIe cards, and virtual COM ports whose drivers support Windows 7.
-No Moxa or other vendor SDK is linked into the DLL.
+No Moxa or other vendor SDK is linked into the DLL. Two optional experimental
+actions can inspect and change the registry convention observed in Moxa driver
+4.3.0.0; all normal serial actions remain vendor-neutral.
 
 The driver targets TestExec SL 7.1 and Windows 7 SP1. The recommended physical
 adapter is the isolated Moxa UPort 1150I because it provides standards-compliant
@@ -29,6 +31,8 @@ this DLL.
   diagnostics.
 - Effective-configuration queries and present-port discovery including friendly
   name, hardware ID, device-instance ID, and Windows location.
+- Guarded Moxa UPort electrical-mode inspection and configuration for the
+  locally verified 4.3.0.0 driver registry layout.
 - Four logging levels with timestamped hex/ASCII traffic and a 5 MiB limit.
 - Structured noninteractive errors; the DLL never displays a message box.
 
@@ -42,6 +46,8 @@ this DLL.
 | `SRCSerial_isOpen` | Report session state and open COM name. |
 | `SRCSerial_getConfiguration` | Return the effective active configuration. |
 | `SRCSerial_enumeratePorts` | List present Windows Ports-class COM devices. |
+| `SRCSerial_getMoxaPortMode` | Inspect a Moxa port's registry mode and driver identity. |
+| `SRCSerial_setMoxaPortMode` | Experimentally set Moxa RS-232/422/485 mode and optionally refresh the device. |
 | `SRCSerial_getBufferLength` | Inspect queued receive bytes without consuming them. |
 | `SRCSerial_readBytes` | Read an exact count or a nonblocking queue snapshot. |
 | `SRCSerial_readString` | Read narrow text through an escaped terminator. |
@@ -147,6 +153,10 @@ Validation errors are:
 | -1005 | Manual line control conflicts with handshake ownership. |
 | -1006 | Invalid hexadecimal input. |
 | -1007 | A generated text output is too large. |
+| -1008 | No Moxa UPort registry instance matches the COM port. |
+| -1009 | Installed Moxa driver does not match the required version. |
+| -1010 | The matching COM port is open in this DLL. |
+| -1011 | Moxa registry values have an unexpected type or value. |
 | -1099 | An exception was contained at the exported action boundary. |
 
 `SRCSerial_getDiagnostics` exposes `CE_FRAME`, `CE_RXPARITY`, `CE_OVERRUN`,
@@ -155,6 +165,65 @@ distinguishing application-protocol failures from baud, framing, signal-level,
 polarity, noise, or adapter problems. COM APIs cannot directly determine
 whether a connector carries true bipolar RS-232 or TTL UART levels; verify that
 electrically with appropriate test equipment.
+
+## Experimental Moxa electrical-mode control
+
+Windows exposes baud, framing, flow control, and line state through the normal
+COM API, but it does not expose whether a multi-interface adapter is operating
+as RS-232, RS-422, RS-485 2-wire, or RS-485 4-wire. Moxa does not provide a
+public API used by this project.
+
+On the locally installed UPort 1150 driver `4.3.0.0`, Device Manager stores the
+selection under:
+
+```text
+HKLM\SYSTEM\CurrentControlSet\Enum\MXUPORT\COM\<instance>\Device Parameters
+```
+
+The observed `SerInterface` mapping is:
+
+- `0`: RS-232.
+- `1`: RS-422.
+- `2`: RS-485 2-wire.
+- `3`: RS-485 4-wire.
+
+`SRCSerial_getMoxaPortMode` safely enumerates instances and matches `PortName`;
+it does not hardcode a device-instance path. It also returns `TxMode`, the
+instance ID, and driver version. `TxMode` is diagnostic only and is never
+modified because its public meaning has not been established.
+
+`SRCSerial_setMoxaPortMode` has several safeguards:
+
+- The serial session must be closed.
+- `ExpectedDriverVersion` defaults to `4.3.0.0`.
+- A different or unknown driver is rejected unless `AllowUnverifiedDriver=1`.
+- Only an existing `REG_DWORD SerInterface` value is changed and read back.
+- `RestartDevice=0` is the default; the action reports `RestartRequired=1`.
+- `RestartDevice=1` explicitly requests a SetupAPI `DIF_PROPERTYCHANGE` for the
+  matched port and reports whether Windows still requests restart/reboot.
+- No privilege elevation, process launch, prompt, or message box occurs.
+
+Writing under `HKLM\...\Enum` and refreshing a device normally requires an
+Administrator process. If TestExec is not elevated, the action returns the
+Windows access-denied error and leaves the value unchanged. A successful
+registry write does not prove that the running driver applied the change;
+verify it after the SetupAPI refresh, Device Manager restart, or unplug/replug.
+
+Example registry-only change to RS-485 2-wire:
+
+```text
+SRCSerial_stop()
+SRCSerial_setMoxaPortMode(
+    Port="COM1", InterfaceMode=2,
+    ExpectedDriverVersion="4.3.0.0",
+    AllowUnverifiedDriver=0, RestartDevice=0)
+```
+
+Preserve `PreviousMode` for rollback. Treat this feature as experimental and
+station-qualified, not as a portable Moxa contract. The older Windows 7 driver
+v3.2 must be observed and qualified separately; do not enable
+`AllowUnverifiedDriver` merely to bypass that validation on a production
+station.
 
 ## Repository contents
 
