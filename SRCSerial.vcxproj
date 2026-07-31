@@ -30,7 +30,7 @@
     <Link><SubSystem>Windows</SubSystem><GenerateDebugInformation>true</GenerateDebugInformation><EnableCOMDATFolding>true</EnableCOMDATFolding><OptimizeReferences>true</OptimizeReferences><ModuleDefinitionFile>.\SRCSerial.def</ModuleDefinitionFile><AdditionalLibraryDirectories>C:\Program Files (x86)\Agilent\TestExec SL 7.1\Lib;C:\Program Files (x86)\Agilent\TS-5000 System Software\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories><AdditionalDependencies>utacore.lib;setupapi.lib;%(AdditionalDependencies)</AdditionalDependencies></Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="InitDll.cpp" /><ClCompile Include="src\SRCSerial_Actions.cpp" /><ClCompile Include="src\SRCSerial_Enumeration.cpp" /><ClCompile Include="src\SRCSerial_Parameters.cpp" /><ClCompile Include="src\SRCSerial_Port.cpp" />
+    <ClCompile Include="InitDll.cpp" /><ClCompile Include="src\SRCSerial_Actions.cpp" /><ClCompile Include="src\SRCSerial_Enumeration.cpp" /><ClCompile Include="src\SRCSerial_Moxa.cpp" /><ClCompile Include="src\SRCSerial_Parameters.cpp" /><ClCompile Include="src\SRCSerial_Port.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SRCSerial.h" /><ClInclude Include="src\SRCSerial_Internal.h" />

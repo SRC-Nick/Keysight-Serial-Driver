@@ -23,3 +23,7 @@
 - Documented source/full-build cloning, private-repository authentication, the
   final Git for Windows version supporting Windows 7, and a preferred
   no-build/no-Git station deployment workflow.
+- Added experimental, driver-version-guarded Moxa UPort electrical-mode query
+  and set actions using the locally observed 4.3.0.0 registry convention,
+  dynamic COM-to-instance matching, readback verification, and optional
+  SetupAPI property refresh.

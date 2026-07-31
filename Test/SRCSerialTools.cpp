@@ -171,7 +171,23 @@ namespace
         p.clear(); p.push_back(String("Ports", "", true)); p.push_back(Int32("Count", 0, true));
         AddCommon(&p); if (!SaveAction("SRCSerial_enumeratePorts", p)) return false;
 
-        p.clear(); AddCommon(&p); return SaveAction("SRCSerial_cancel", p);
+        p.clear(); AddCommon(&p); if (!SaveAction("SRCSerial_cancel", p)) return false;
+
+        p.clear(); p.push_back(String("Port", "COM1"));
+        p.push_back(Int32("Found", 0, true)); p.push_back(Int32("InterfaceMode", -1, true));
+        p.push_back(Int32("TxMode", -1, true)); p.push_back(String("InstanceId", "", true));
+        p.push_back(String("DriverVersion", "", true)); AddCommon(&p);
+        if (!SaveAction("SRCSerial_getMoxaPortMode", p)) return false;
+
+        p.clear(); p.push_back(String("Port", "COM1")); p.push_back(Int32("InterfaceMode", 0));
+        p.push_back(String("ExpectedDriverVersion", "4.3.0.0"));
+        p.push_back(Int32("AllowUnverifiedDriver", 0)); p.push_back(Int32("RestartDevice", 0));
+        p.push_back(Int32("Found", 0, true)); p.push_back(Int32("PreviousMode", -1, true));
+        p.push_back(Int32("CurrentMode", -1, true)); p.push_back(Int32("TxMode", -1, true));
+        p.push_back(String("InstanceId", "", true)); p.push_back(String("DriverVersion", "", true));
+        p.push_back(Int32("RegistryUpdated", 0, true)); p.push_back(Int32("RestartAttempted", 0, true));
+        p.push_back(Int32("RestartSucceeded", 0, true)); p.push_back(Int32("RestartRequired", 0, true));
+        AddCommon(&p); return SaveAction("SRCSerial_setMoxaPortMode", p);
     }
 
     bool Inspect(const char* fileName)
@@ -247,6 +263,14 @@ namespace
         DWORD portCount = 0;
         status = srcserial::EnumeratePorts(&ports, &portCount);
         ok &= Check(status.success, "enumerate present COM ports");
+        srcserial::MoxaPortMode moxaMode;
+        status = srcserial::GetMoxaPortMode("COM0", &moxaMode);
+        ok &= Check(!status.success && status.code == srcserial::ErrorInvalidParameter,
+            "reject invalid Moxa COM name");
+        status = srcserial::SetMoxaPortMode("COM1", 4, "4.3.0.0", false,
+            false, &moxaMode);
+        ok &= Check(!status.success && status.code == srcserial::ErrorInvalidParameter,
+            "reject invalid Moxa interface mode");
         DWORD available = 123;
         status = srcserial::GetBufferLength(&available);
         ok &= Check(!status.success && status.code == srcserial::ErrorNotOpen && available == 0, "closed port status");
@@ -268,7 +292,8 @@ namespace
             "SRCSerial_getLineStatus", "SRCSerial_isOpen", "SRCSerial_getConfiguration",
             "SRCSerial_getDiagnostics", "SRCSerial_readUntilIdle", "SRCSerial_transact",
             "SRCSerial_writeHex", "SRCSerial_readHex", "SRCSerial_pulseControlLine",
-            "SRCSerial_drainTransmit", "SRCSerial_enumeratePorts", "SRCSerial_cancel"
+            "SRCSerial_drainTransmit", "SRCSerial_enumeratePorts", "SRCSerial_cancel",
+            "SRCSerial_getMoxaPortMode", "SRCSerial_setMoxaPortMode"
         };
         bool allExports = true;
         for (size_t i = 0; i < sizeof(exports) / sizeof(exports[0]); ++i)
@@ -294,8 +319,73 @@ namespace
         UtaPbUnBind(block);
         UtaPbRelease(block);
         UtaPbDefRelease(definition);
+
+        ActionRoutine getMoxa = reinterpret_cast<ActionRoutine>(
+            GetProcAddress(dll, "SRCSerial_getMoxaPortMode"));
+        HUTAPBDEF moxaDefinition = UtaPbDefCreate();
+        std::vector<ParmSpec> moxaParms;
+        moxaParms.push_back(String("Port", "COM1"));
+        moxaParms.push_back(Int32("Found", 0, true));
+        moxaParms.push_back(Int32("InterfaceMode", -1, true));
+        moxaParms.push_back(Int32("TxMode", -1, true));
+        moxaParms.push_back(String("InstanceId", "", true));
+        moxaParms.push_back(String("DriverVersion", "", true));
+        AddCommon(&moxaParms);
+        for (size_t i = 0; i < moxaParms.size(); ++i)
+            AddParm(moxaDefinition, moxaParms[i]);
+        HUTAPB moxaBlock = UtaPbDefCreateParameterBlock(moxaDefinition,
+            moxaDefinition);
+        UtaPbBind(moxaBlock);
+        getMoxa(moxaBlock);
+        const long moxaSuccess = UtaInt32GetValue(reinterpret_cast<HUTAINT32>(
+            UtaPbFindData(moxaBlock, "Success")));
+        const long moxaCode = UtaInt32GetValue(reinterpret_cast<HUTAINT32>(
+            UtaPbFindData(moxaBlock, "ErrorCode")));
+        const long moxaFound = UtaInt32GetValue(reinterpret_cast<HUTAINT32>(
+            UtaPbFindData(moxaBlock, "Found")));
+        ok &= Check((moxaSuccess == 1 && moxaFound == 1) ||
+            (moxaSuccess == 0 && moxaCode == srcserial::ErrorMoxaPortNotFound),
+            "Moxa query action reports matched or absent adapter");
+        UtaPbUnBind(moxaBlock);
+        UtaPbRelease(moxaBlock);
+        UtaPbDefRelease(moxaDefinition);
         FreeLibrary(dll);
         return ok;
+    }
+
+    bool MoxaProbe(const char* port)
+    {
+        srcserial::MoxaPortMode mode;
+        const srcserial::Status status = srcserial::GetMoxaPortMode(port, &mode);
+        if (!status.success)
+        {
+            std::fprintf(stderr, "Moxa probe failed: %ld %s\n", status.code,
+                status.message.c_str());
+            return false;
+        }
+        std::printf("port=%s found=%d interfaceMode=%ld txMode=%ld instance=%s driver=%s\n",
+            port, mode.found ? 1 : 0, mode.interfaceMode, mode.txMode,
+            mode.instanceId.c_str(), mode.driverVersion.c_str());
+        srcserial::MoxaPortMode guarded;
+        srcserial::Status guardedStatus = srcserial::SetMoxaPortMode(port,
+            mode.interfaceMode, "intentionally-wrong-version", false, false,
+            &guarded);
+        if (guardedStatus.success ||
+            guardedStatus.code != srcserial::ErrorMoxaDriverMismatch)
+        {
+            std::fprintf(stderr, "Moxa driver-version guard did not reject mismatch\n");
+            return false;
+        }
+        guardedStatus = srcserial::SetMoxaPortMode(port, mode.interfaceMode,
+            mode.driverVersion.c_str(), false, false, &guarded);
+        if (!guardedStatus.success || guarded.registryUpdated)
+        {
+            std::fprintf(stderr, "Moxa no-change guarded set failed: %ld %s\n",
+                guardedStatus.code, guardedStatus.message.c_str());
+            return false;
+        }
+        std::printf("driverVersionGuard=pass noChangeSet=pass\n");
+        return true;
     }
 }
 
@@ -307,7 +397,8 @@ int main(int argc, char** argv)
     else if (argc >= 3 && std::strcmp(argv[1], "inspect") == 0) result = Inspect(argv[2]) ? 0 : 1;
     else if (argc >= 2 && std::strcmp(argv[1], "self-test") == 0) result = SelfTest() ? 0 : 1;
     else if (argc >= 3 && std::strcmp(argv[1], "action-smoke") == 0) result = ActionSmoke(argv[2]) ? 0 : 1;
-    else std::fprintf(stderr, "usage: SRCSerialTools generate | inspect <umd> | self-test | action-smoke <dll>\n");
+    else if (argc >= 3 && std::strcmp(argv[1], "moxa-probe") == 0) result = MoxaProbe(argv[2]) ? 0 : 1;
+    else std::fprintf(stderr, "usage: SRCSerialTools generate | inspect <umd> | self-test | action-smoke <dll> | moxa-probe <COMn>\n");
     UtaCoreShutDown();
     return result;
 }

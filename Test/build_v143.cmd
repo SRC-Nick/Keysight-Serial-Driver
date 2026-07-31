@@ -17,8 +17,8 @@ for %%F in (actions\SRCSerial_*.umd) do (
   Test\Release\SRCSerialTools.exe inspect "%%F"
   if errorlevel 1 exit /b 1
 )
-if not "%UMD_COUNT%"=="21" (
-  echo Expected 21 UMD files but found %UMD_COUNT%.
+if not "%UMD_COUNT%"=="23" (
+  echo Expected 23 UMD files but found %UMD_COUNT%.
   exit /b 1
 )
 where dumpbin >nul 2>nul
