@@ -19,6 +19,10 @@ namespace srcserial
         ErrorHandshakeConflict = -1005,
         ErrorInvalidHex = -1006,
         ErrorOutputTooLarge = -1007,
+        ErrorMoxaPortNotFound = -1008,
+        ErrorMoxaDriverMismatch = -1009,
+        ErrorPortInUse = -1010,
+        ErrorMoxaRegistry = -1011,
         ErrorInternal = -1099
     };
 
@@ -83,6 +87,22 @@ namespace srcserial
         TransactionConfig();
     };
 
+    struct MoxaPortMode
+    {
+        bool found;
+        long previousInterfaceMode;
+        long interfaceMode;
+        long txMode;
+        std::string instanceId;
+        std::string driverVersion;
+        bool registryUpdated;
+        bool restartAttempted;
+        bool restartSucceeded;
+        bool restartRequired;
+
+        MoxaPortMode();
+    };
+
     void Initialize(HMODULE module);
     void Shutdown();
     Status Start(const PortConfig& config);
@@ -108,6 +128,10 @@ namespace srcserial
     Status DecodeHex(const char* text, std::vector<unsigned char>* bytes);
     std::string FormatHex(const unsigned char* data, size_t count);
     Status EnumeratePorts(std::string* result, DWORD* count);
+    Status GetMoxaPortMode(const char* port, MoxaPortMode* mode);
+    Status SetMoxaPortMode(const char* port, long interfaceMode,
+        const char* expectedDriverVersion, bool allowUnverifiedDriver,
+        bool restartDevice, MoxaPortMode* mode);
     std::string NormalizePortName(const char* port, Status* status);
 
     bool HasParameter(HUTAPB block, const char* name);

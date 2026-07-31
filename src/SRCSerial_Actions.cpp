@@ -54,6 +54,25 @@ namespace
         return srcserial::Status::Ok();
     }
 
+    void SetMoxaModeOutputs(HUTAPB block, const srcserial::MoxaPortMode& mode,
+        bool includeChangeOutputs)
+    {
+        srcserial::SetInt32(block, "Found", mode.found ? 1 : 0);
+        srcserial::SetInt32(block, "InterfaceMode", mode.interfaceMode);
+        srcserial::SetInt32(block, "PreviousMode", mode.previousInterfaceMode);
+        srcserial::SetInt32(block, "CurrentMode", mode.interfaceMode);
+        srcserial::SetInt32(block, "TxMode", mode.txMode);
+        srcserial::SetString(block, "InstanceId", mode.instanceId.c_str());
+        srcserial::SetString(block, "DriverVersion", mode.driverVersion.c_str());
+        if (includeChangeOutputs)
+        {
+            srcserial::SetInt32(block, "RegistryUpdated", mode.registryUpdated ? 1 : 0);
+            srcserial::SetInt32(block, "RestartAttempted", mode.restartAttempted ? 1 : 0);
+            srcserial::SetInt32(block, "RestartSucceeded", mode.restartSucceeded ? 1 : 0);
+            srcserial::SetInt32(block, "RestartRequired", mode.restartRequired ? 1 : 0);
+        }
+    }
+
 }
 
 extern "C" void UTAAPI SRCSerial_start(HUTAPB block)
@@ -556,5 +575,43 @@ extern "C" void UTAAPI SRCSerial_cancel(HUTAPB block)
 {
     srcserial::ClearStatus(block);
     try { srcserial::SetStatus(block, srcserial::CancelPending()); }
+    catch (...) { srcserial::SetStatus(block, UnexpectedFailure()); }
+}
+
+extern "C" void UTAAPI SRCSerial_getMoxaPortMode(HUTAPB block)
+{
+    srcserial::ClearStatus(block);
+    srcserial::MoxaPortMode mode;
+    SetMoxaModeOutputs(block, mode, false);
+    try
+    {
+        const std::string port = srcserial::GetString(block, "Port", "COM1");
+        const srcserial::Status status = srcserial::GetMoxaPortMode(
+            port.c_str(), &mode);
+        SetMoxaModeOutputs(block, mode, false);
+        srcserial::SetStatus(block, status);
+    }
+    catch (...) { srcserial::SetStatus(block, UnexpectedFailure()); }
+}
+
+extern "C" void UTAAPI SRCSerial_setMoxaPortMode(HUTAPB block)
+{
+    srcserial::ClearStatus(block);
+    srcserial::MoxaPortMode mode;
+    SetMoxaModeOutputs(block, mode, true);
+    try
+    {
+        const std::string port = srcserial::GetString(block, "Port", "COM1");
+        const std::string expected = srcserial::GetString(block,
+            "ExpectedDriverVersion", "4.3.0.0");
+        const srcserial::Status status = srcserial::SetMoxaPortMode(
+            port.c_str(), srcserial::GetInt32(block, "InterfaceMode", 0),
+            expected.c_str(),
+            srcserial::GetInt32(block, "AllowUnverifiedDriver", 0) != 0,
+            srcserial::GetInt32(block, "RestartDevice", 0) != 0,
+            &mode);
+        SetMoxaModeOutputs(block, mode, true);
+        srcserial::SetStatus(block, status);
+    }
     catch (...) { srcserial::SetStatus(block, UnexpectedFailure()); }
 }

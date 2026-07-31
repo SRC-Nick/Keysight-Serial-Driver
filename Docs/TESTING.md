@@ -7,7 +7,7 @@ and tools, inspects all UMDs, tests pure parsing/validation behavior, loads
 the DLL through the UTA runtime, checks structured closed-port errors, and
 lists PE exports/imports.
 
-The current public surface contains 21 exports and 21 matching UMD files.
+The current public surface contains 23 exports and 23 matching UMD files.
 
 The checked-in release must additionally build with v142:
 
@@ -55,4 +55,14 @@ msbuild SRCSerial.sln /m /p:Configuration=Release /p:Platform=Win32
   and exercise cancel from a parallel cleanup path.
 - Record adapter serial number, driver version, COM assignment, electrical
   mode, baud settings, and results in the release validation record.
+- Run `SRCSerial_getMoxaPortMode` and compare its COM match, instance ID, driver
+  version, `SerInterface`, and `TxMode` with Device Manager and Registry Editor.
+- In a disposable/elevated development test, change each Moxa mode, preserve
+  `PreviousMode`, refresh or reconnect the device, and verify the physical
+  interface. Restore the original mode afterward.
+- Confirm a non-elevated mode change returns access denied without modifying
+  `SerInterface`; confirm an open matching session returns -1010.
+- Confirm an unexpected driver version returns -1009 unless the test explicitly
+  enables `AllowUnverifiedDriver`; never use that override for production until
+  the driver layout and behavior have been independently qualified.
 - Tag `v0.1.0` only after both required electrical modes pass on the target.

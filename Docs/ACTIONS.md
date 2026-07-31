@@ -13,7 +13,7 @@ displays a modal dialog.
 ## Action groups
 
 - Session/discovery: `start`, `stop`, `cancel`, `isOpen`,
-  `getConfiguration`, `enumeratePorts`.
+  `getConfiguration`, `enumeratePorts`, `getMoxaPortMode`, `setMoxaPortMode`.
 - Receive: `getBufferLength`, `readBytes`, `readString`, `readUntilIdle`,
   `readHex`.
 - Transmit/transaction: `writeBytes`, `writeString`, `writeHex`, `transact`.
@@ -46,4 +46,8 @@ displays a modal dialog.
 | -1005 | Manual line control conflicts with handshake ownership. |
 | -1006 | Invalid hexadecimal input. |
 | -1007 | Text output is too large. |
+| -1008 | No Moxa UPort instance matches the COM port. |
+| -1009 | Moxa driver version is not the explicitly expected version. |
+| -1010 | Matching serial port must be closed before mode change. |
+| -1011 | Moxa registry data has an unexpected type or value. |
 | -1099 | Unexpected exception contained at the DLL boundary. |

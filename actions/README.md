@@ -185,6 +185,69 @@ COM name|friendly name|hardware ID|device instance ID|location
 The device-instance ID commonly contains a USB serial identity. Enumeration
 does not open a port and can run while the serial session is closed.
 
+### `SRCSerial_getMoxaPortMode`
+
+Read-only experimental query for the registry layout observed with Moxa UPort
+driver 4.3.0.0. It enumerates `HKLM\SYSTEM\CurrentControlSet\Enum\MXUPORT\COM`,
+matches the requested COM name using `Device Parameters\PortName`, and never
+hardcodes an instance suffix.
+
+| Order | Name | Type | Direction | Default | Meaning |
+|---:|---|---|---|---|---|
+| 1 | `Port` | String | Input | `COM1` | Moxa COM port to match. |
+| 2 | `Found` | Int32 | Output | 0 | 1 after an exact Moxa instance match. |
+| 3 | `InterfaceMode` | Int32 | Output | -1 | Observed `SerInterface`: 0 RS-232, 1 RS-422, 2 RS-485 2W, 3 RS-485 4W. |
+| 4 | `TxMode` | Int32 | Output | -1 | Raw diagnostic value; meaning is not assumed. |
+| 5 | `InstanceId` | String | Output | empty | Full dynamic PnP instance ID. |
+| 6 | `DriverVersion` | String | Output | empty | Version read through the instance's class-driver registry key. |
+
+This action does not open the COM port, write the registry, restart a device,
+or require Administrator privileges under the locally observed ACLs.
+
+### `SRCSerial_setMoxaPortMode`
+
+Experimental Moxa-specific registry update. All outputs are populated as far as
+possible even when the action returns an error after finding the device.
+
+| Order | Name | Type | Dir. | Default | Meaning |
+|---:|---|---|---|---|---|
+| 1 | `Port` | String | In | `COM1` | Moxa COM port to match dynamically. |
+| 2 | `InterfaceMode` | Int32 | In | 0 | 0 RS-232, 1 RS-422, 2 RS-485 2W, 3 RS-485 4W. |
+| 3 | `ExpectedDriverVersion` | String | In | `4.3.0.0` | Required exact version unless override is explicit. |
+| 4 | `AllowUnverifiedDriver` | Int32 | In | 0 | Nonzero bypasses version mismatch protection. |
+| 5 | `RestartDevice` | Int32 | In | 0 | Nonzero requests SetupAPI `DIF_PROPERTYCHANGE`. |
+| 6 | `Found` | Int32 | Out | 0 | Exact Moxa COM instance was found. |
+| 7 | `PreviousMode` | Int32 | Out | -1 | Mode before any registry update. |
+| 8 | `CurrentMode` | Int32 | Out | -1 | Verified registry value after the operation. |
+| 9 | `TxMode` | Int32 | Out | -1 | Raw diagnostic value; never modified. |
+| 10 | `InstanceId` | String | Out | empty | Full matched PnP instance ID. |
+| 11 | `DriverVersion` | String | Out | empty | Installed port-driver version. |
+| 12 | `RegistryUpdated` | Int32 | Out | 0 | `SerInterface` was changed and read back. |
+| 13 | `RestartAttempted` | Int32 | Out | 0 | SetupAPI refresh was requested. |
+| 14 | `RestartSucceeded` | Int32 | Out | 0 | SetupAPI call completed successfully. |
+| 15 | `RestartRequired` | Int32 | Out | 0 | Reconnect/restart is still required. |
+
+The action rejects an open matching session with -1010. Changing an existing
+`HKLM\...\Enum` value and refreshing a PnP device normally requires an elevated
+TestExec process; the DLL never prompts for elevation. With `RestartDevice=0`,
+a changed registry value returns `RestartRequired=1`. With `RestartDevice=1`,
+success only means Windows accepted the property-change request; confirm the
+electrical mode with Device Manager and hardware traffic.
+
+Example:
+
+```text
+SRCSerial_stop()
+SRCSerial_setMoxaPortMode(
+    Port="COM1", InterfaceMode=2,
+    ExpectedDriverVersion="4.3.0.0",
+    AllowUnverifiedDriver=0, RestartDevice=0)
+```
+
+Keep `PreviousMode` for rollback. Driver v3.2 and other versions are unverified;
+do not use `AllowUnverifiedDriver=1` on a production station without separately
+confirming registry mapping, application behavior, and recovery.
+
 ## Read actions
 
 ### `SRCSerial_getBufferLength`

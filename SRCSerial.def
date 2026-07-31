@@ -21,3 +21,5 @@ EXPORTS
     SRCSerial_drainTransmit
     SRCSerial_enumeratePorts
     SRCSerial_cancel
+    SRCSerial_getMoxaPortMode
+    SRCSerial_setMoxaPortMode

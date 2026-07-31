@@ -81,8 +81,8 @@ try {
     Invoke-Checked $tools "action-smoke" $dll
 
     $umdFiles = @(Get-ChildItem -LiteralPath (Join-Path $repositoryRoot "actions") -Filter "SRCSerial_*.umd")
-    if ($umdFiles.Count -ne 21) {
-        throw "Expected 21 UMD files but found $($umdFiles.Count)."
+    if ($umdFiles.Count -ne 23) {
+        throw "Expected 23 UMD files but found $($umdFiles.Count)."
     }
     foreach ($umd in $umdFiles) {
         Invoke-Checked $tools "inspect" $umd.FullName
@@ -152,9 +152,9 @@ try {
     }
     $peText = $peReport -join [Environment]::NewLine
     if ($peText -notmatch "14C machine \(x86\)" -or
-        $peText -notmatch "21 number of functions" -or
-        $peText -notmatch "21 number of names") {
-        throw "The DLL does not have the expected x86/21-export PE structure."
+        $peText -notmatch "23 number of functions" -or
+        $peText -notmatch "23 number of names") {
+        throw "The DLL does not have the expected x86/23-export PE structure."
     }
     Set-Content -LiteralPath (Join-Path $artifactRoot "PE-REPORT.txt") `
         -Value $peReport -Encoding ASCII

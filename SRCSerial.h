@@ -24,4 +24,6 @@ void UTAAPI SRCSerial_pulseControlLine(HUTAPB hParmBlock);
 void UTAAPI SRCSerial_drainTransmit(HUTAPB hParmBlock);
 void UTAAPI SRCSerial_enumeratePorts(HUTAPB hParmBlock);
 void UTAAPI SRCSerial_cancel(HUTAPB hParmBlock);
+void UTAAPI SRCSerial_getMoxaPortMode(HUTAPB hParmBlock);
+void UTAAPI SRCSerial_setMoxaPortMode(HUTAPB hParmBlock);
 }
