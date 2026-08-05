@@ -187,7 +187,102 @@ namespace
         p.push_back(String("InstanceId", "", true)); p.push_back(String("DriverVersion", "", true));
         p.push_back(Int32("RegistryUpdated", 0, true)); p.push_back(Int32("RestartAttempted", 0, true));
         p.push_back(Int32("RestartSucceeded", 0, true)); p.push_back(Int32("RestartRequired", 0, true));
-        AddCommon(&p); return SaveAction("SRCSerial_setMoxaPortMode", p);
+        AddCommon(&p); if (!SaveAction("SRCSerial_setMoxaPortMode", p)) return false;
+
+        p.clear(); p.push_back(Int32("RxFrameLength", 1));
+        p.push_back(Int32("RxIdOffset", 0)); p.push_back(Int32("RxIdValue", 0));
+        p.push_back(Int32("RxIdMask", 0)); p.push_back(Int32("RxChecksumMode", 0));
+        p.push_back(Int32("RxChecksumStart", 0)); p.push_back(Int32("RxChecksumLength", 0));
+        p.push_back(Int32("RxChecksumOffset", -1)); p.push_back(Int32("RxQueueCapacity", 256));
+        p.push_back(Int32("EventQueueCapacity", 512)); p.push_back(Int32("SilenceTimeoutMs", 1000));
+        p.push_back(Int32("PollIntervalMs", 1)); p.push_back(Int32("MinimumInterTxMs", 0));
+        p.push_back(Int32("WorkerPriority", 1)); p.push_back(Int32("WorkerRunning", 0, true));
+        AddCommon(&p); if (!SaveAction("SRCSerial_workerStart", p)) return false;
+
+        p.clear(); p.push_back(Int32("ClearState", 0)); p.push_back(Int32("WorkerRunning", 0, true));
+        AddCommon(&p); if (!SaveAction("SRCSerial_workerStop", p)) return false;
+
+        p.clear(); p.push_back(Int32("ResetCounters", 0));
+        p.push_back(Int32("WorkerRunning", 0, true)); p.push_back(Int32("RxFrameCount", 0, true));
+        p.push_back(Int32("ValidRxFrameCount", 0, true)); p.push_back(Int32("InvalidRxFrameCount", 0, true));
+        p.push_back(Int32("ChecksumErrorCount", 0, true)); p.push_back(Int32("BadIdCount", 0, true));
+        p.push_back(Int32("DroppedByteCount", 0, true)); p.push_back(Int32("TxFrameCount", 0, true));
+        p.push_back(Int32("ResponseTxCount", 0, true)); p.push_back(Int32("CyclicTxCount", 0, true));
+        p.push_back(Int32("ManualTxCount", 0, true)); p.push_back(Int32("RxSilenceTimeoutCount", 0, true));
+        p.push_back(Int32("RxFramesQueued", 0, true)); p.push_back(Int32("EventsQueued", 0, true));
+        p.push_back(Int32("PendingTxCount", 0, true)); p.push_back(Int32("LastRxAgeMs", -1, true));
+        p.push_back(Int32("LastResponseLatencyUs", -1, true)); p.push_back(Int32("MaxResponseLatencyUs", 0, true));
+        p.push_back(Int32("LastValidRxAgeMs", -1, true)); p.push_back(Int32("LastTxAgeMs", -1, true));
+        p.push_back(Int32("WorkerLastErrorCode", 0, true)); p.push_back(String("WorkerLastErrorMessage", "", true));
+        AddCommon(&p); if (!SaveAction("SRCSerial_workerGetStatus", p)) return false;
+
+        p.clear(); p.push_back(Int32("MaxEvents", 20)); p.push_back(Int32("ClearAfterRead", 1));
+        p.push_back(String("EventsText", "", true)); p.push_back(Int32("EventsReturned", 0, true));
+        p.push_back(Int32("EventsRemaining", 0, true)); AddCommon(&p);
+        if (!SaveAction("SRCSerial_workerReadEvents", p)) return false;
+
+        p.clear(); p.push_back(String("Hex", "")); p.push_back(Int32("Mode", 0));
+        p.push_back(Int32("QuietGapMs", 1)); p.push_back(Int32("Queued", 0, true));
+        p.push_back(Int32("QueueDepth", 0, true)); AddCommon(&p);
+        if (!SaveAction("SRCSerial_workerQueueTx", p)) return false;
+
+        p.clear(); p.push_back(Int32("JobId", 1)); p.push_back(String("FrameHex", ""));
+        p.push_back(Int32("PeriodMs", 1000)); p.push_back(Int32("InitialDelayMs", 0));
+        p.push_back(Int32("Enabled", 1)); p.push_back(Int32("ChecksumMode", 0));
+        p.push_back(Int32("ChecksumStart", 0)); p.push_back(Int32("ChecksumLength", 0));
+        p.push_back(Int32("ChecksumOffset", -1)); p.push_back(String("AppliedHex", "", true));
+        p.push_back(Int32("ActiveCycles", 0, true)); AddCommon(&p);
+        if (!SaveAction("SRCSerial_cycleCreate", p)) return false;
+
+        p.clear(); p.push_back(Int32("JobId", 1)); p.push_back(String("FrameHex", ""));
+        p.push_back(Int32("ByteOffset", -1)); p.push_back(Int32("ByteValue", 0));
+        p.push_back(Int32("PeriodMs", -1)); p.push_back(Int32("Enabled", -1));
+        p.push_back(Int32("RecalculateChecksum", 1)); p.push_back(String("AppliedHex", "", true));
+        p.push_back(Int32("ActiveCycles", 0, true)); AddCommon(&p);
+        if (!SaveAction("SRCSerial_cycleUpdate", p)) return false;
+
+        p.clear(); p.push_back(Int32("JobId", 1)); p.push_back(Int32("Found", 0, true));
+        p.push_back(Int32("ActiveCycles", 0, true)); AddCommon(&p);
+        if (!SaveAction("SRCSerial_cycleDestroy", p)) return false;
+
+        p.clear(); p.push_back(Int32("JobId", 1)); p.push_back(String("FrameHex", ""));
+        p.push_back(Int32("TriggerOffset", -1)); p.push_back(Int32("TriggerValue", 0));
+        p.push_back(Int32("TriggerMask", 255)); p.push_back(Int32("ResponseMode", 1));
+        p.push_back(Int32("ResponseDelayMs", 0)); p.push_back(Int32("QuietGapMs", 1));
+        p.push_back(Int32("ReplacePending", 1)); p.push_back(Int32("Enabled", 1));
+        p.push_back(Int32("TriggerSkipCount", 0)); p.push_back(Int32("SendCountLimit", 0));
+        p.push_back(Int32("ChecksumMode", 0)); p.push_back(Int32("ChecksumStart", 0));
+        p.push_back(Int32("ChecksumLength", 0)); p.push_back(Int32("ChecksumOffset", -1));
+        p.push_back(String("AppliedHex", "", true)); p.push_back(Int32("ActiveResponses", 0, true));
+        AddCommon(&p); if (!SaveAction("SRCSerial_responseCreate", p)) return false;
+
+        p.clear(); p.push_back(Int32("JobId", 1)); p.push_back(String("FrameHex", ""));
+        p.push_back(Int32("ByteOffset", -1)); p.push_back(Int32("ByteValue", 0));
+        p.push_back(Int32("ResponseMode", -1)); p.push_back(Int32("ResponseDelayMs", -1));
+        p.push_back(Int32("QuietGapMs", -1)); p.push_back(Int32("ReplacePending", -1));
+        p.push_back(Int32("Enabled", -1)); p.push_back(Int32("ResetTriggerCounter", 0));
+        p.push_back(Int32("RecalculateChecksum", 1));
+        p.push_back(String("AppliedHex", "", true)); p.push_back(Int32("ActiveResponses", 0, true));
+        AddCommon(&p); if (!SaveAction("SRCSerial_responseUpdate", p)) return false;
+
+        p.clear(); p.push_back(Int32("JobId", 1)); p.push_back(Int32("Found", 0, true));
+        p.push_back(Int32("ActiveResponses", 0, true)); AddCommon(&p);
+        if (!SaveAction("SRCSerial_responseDestroy", p)) return false;
+
+        p.clear(); p.push_back(Int32("FramesAvailable", 0, true));
+        p.push_back(Int32("EventsAvailable", 0, true)); p.push_back(Int32("StreamBytes", 0, true));
+        AddCommon(&p); if (!SaveAction("SRCSerial_rxGetCount", p)) return false;
+
+        p.clear(); p.push_back(Int32("Remove", 1)); p.push_back(Int32Array("Data", 4096, true));
+        p.push_back(Int32("Found", 0, true)); p.push_back(Int32("BytesRead", 0, true));
+        p.push_back(String("Hex", "", true)); p.push_back(Int32("Sequence", 0, true));
+        p.push_back(String("TimestampUtc", "", true)); p.push_back(Int32("AgeMs", -1, true));
+        p.push_back(Int32("ChecksumValid", 0, true)); p.push_back(Int32("FramesRemaining", 0, true));
+        AddCommon(&p); if (!SaveAction("SRCSerial_rxReadFrame", p)) return false;
+
+        p.clear(); p.push_back(Int32("ClearFrames", 1)); p.push_back(Int32("ClearEvents", 1));
+        p.push_back(Int32("ClearCounters", 0)); p.push_back(Int32("Cleared", 0, true));
+        AddCommon(&p); return SaveAction("SRCSerial_rxClear", p);
     }
 
     bool Inspect(const char* fileName)
@@ -236,6 +331,14 @@ namespace
         status = srcserial::DecodeHex("0", &bytes);
         ok &= Check(!status.success && status.code == srcserial::ErrorInvalidHex,
             "reject incomplete hex");
+        const unsigned char jlgBytes[] = { 0x74, 0x0A, 0x00, 0x00 };
+        bytes.assign(jlgBytes, jlgBytes + sizeof(jlgBytes));
+        status = srcserial::ApplyFrameChecksum(&bytes, 1, 0, 3, 3);
+        ok &= Check(status.success && bytes[3] == 0x81,
+            "calculate JLG one's-complement checksum");
+        status = srcserial::ApplyFrameChecksum(&bytes, 1, 0, 4, 3);
+        ok &= Check(!status.success && status.code == srcserial::ErrorWorkerChecksum,
+            "reject checksum byte inside payload range");
         bool open = true;
         std::string port;
         status = srcserial::IsOpen(&open, &port);
@@ -259,6 +362,21 @@ namespace
         ok &= Check(!status.success && status.code == srcserial::ErrorNotOpen,
             "drain requires open session");
         ok &= Check(srcserial::CancelPending().success, "cancel is safe while closed");
+        srcserial::WorkerConfig workerConfig;
+        workerConfig.rxFrameLength = 6;
+        workerConfig.rxIdValue = 0x6A;
+        workerConfig.rxIdMask = 0xFF;
+        workerConfig.rxChecksumMode = 1;
+        workerConfig.rxChecksumStart = 0;
+        workerConfig.rxChecksumLength = 5;
+        workerConfig.rxChecksumOffset = 5;
+        status = srcserial::WorkerStart(workerConfig);
+        ok &= Check(!status.success && status.code == srcserial::ErrorNotOpen,
+            "worker requires open serial session");
+        DWORD queueDepth = 0;
+        status = srcserial::WorkerQueueTx(bytes, 0, 1, &queueDepth);
+        ok &= Check(!status.success && status.code == srcserial::ErrorWorkerNotRunning,
+            "manual worker TX requires running worker");
         std::string ports;
         DWORD portCount = 0;
         status = srcserial::EnumeratePorts(&ports, &portCount);
@@ -293,7 +411,14 @@ namespace
             "SRCSerial_getDiagnostics", "SRCSerial_readUntilIdle", "SRCSerial_transact",
             "SRCSerial_writeHex", "SRCSerial_readHex", "SRCSerial_pulseControlLine",
             "SRCSerial_drainTransmit", "SRCSerial_enumeratePorts", "SRCSerial_cancel",
-            "SRCSerial_getMoxaPortMode", "SRCSerial_setMoxaPortMode"
+            "SRCSerial_getMoxaPortMode", "SRCSerial_setMoxaPortMode",
+            "SRCSerial_workerStart", "SRCSerial_workerStop",
+            "SRCSerial_workerGetStatus", "SRCSerial_workerReadEvents",
+            "SRCSerial_workerQueueTx", "SRCSerial_cycleCreate",
+            "SRCSerial_cycleUpdate", "SRCSerial_cycleDestroy",
+            "SRCSerial_responseCreate", "SRCSerial_responseUpdate",
+            "SRCSerial_responseDestroy", "SRCSerial_rxGetCount",
+            "SRCSerial_rxReadFrame", "SRCSerial_rxClear"
         };
         bool allExports = true;
         for (size_t i = 0; i < sizeof(exports) / sizeof(exports[0]); ++i)
@@ -392,6 +517,8 @@ namespace
 int main(int argc, char** argv)
 {
     UtaCoreWakeUp("SRCSerialTools", NULL, NULL);
+    srcserial::Initialize(GetModuleHandleA(NULL));
+    srcserial::InitializeWorker();
     int result = 1;
     if (argc >= 2 && std::strcmp(argv[1], "generate") == 0) result = GenerateActions() ? 0 : 1;
     else if (argc >= 3 && std::strcmp(argv[1], "inspect") == 0) result = Inspect(argv[2]) ? 0 : 1;
@@ -399,6 +526,8 @@ int main(int argc, char** argv)
     else if (argc >= 3 && std::strcmp(argv[1], "action-smoke") == 0) result = ActionSmoke(argv[2]) ? 0 : 1;
     else if (argc >= 3 && std::strcmp(argv[1], "moxa-probe") == 0) result = MoxaProbe(argv[2]) ? 0 : 1;
     else std::fprintf(stderr, "usage: SRCSerialTools generate | inspect <umd> | self-test | action-smoke <dll> | moxa-probe <COMn>\n");
+    srcserial::ShutdownWorker(false);
+    srcserial::Shutdown();
     UtaCoreShutDown();
     return result;
 }

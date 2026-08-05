@@ -66,9 +66,9 @@ between all vendors.
 ## TestExec deployment and rollback
 
 1. Back up the station's TestExec search-path configuration.
-2. Copy `SRCSerial.dll` and all 23 `.umd` files to controlled deployment
+2. Copy `SRCSerial.dll` and all 37 `.umd` files to controlled deployment
    folders and add those folders under TestExec System Options.
-3. Restart TestExec and confirm the 23 `SRCSerial_*` actions are visible.
+3. Restart TestExec and confirm the 37 `SRCSerial_*` actions are visible.
 4. Run the smoke and loopback plans from `Docs/TESTING.md`.
 5. To roll back, remove the new search paths/files and restore the saved system
    configuration. The installation does not replace TestExec's `scomm` files.

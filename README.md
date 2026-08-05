@@ -33,6 +33,13 @@ this DLL.
   name, hardware ID, device-instance ID, and Windows location.
 - Guarded Moxa UPort electrical-mode inspection and configuration for the
   locally verified 4.3.0.0 driver registry layout.
+- A persistent fixed-frame protocol worker for sub-TestExec timing, with
+  high-resolution response latency measurements and exclusive COM ownership.
+- Generic RX-triggered response jobs with immediate or resettable quiet-gap
+  scheduling, checksum generation, first/steady response sequencing, and
+  atomic byte/frame updates.
+- Generic create/update/destroy cyclic TX jobs, queued manual TX, bounded raw
+  RX-frame and event rings, silence detection, counters, and timestamps.
 - Four logging levels with timestamped hex/ASCII traffic and a 5 MiB limit.
 - Structured noninteractive errors; the DLL never displays a message box.
 
@@ -63,6 +70,20 @@ this DLL.
 | `SRCSerial_pulseControlLine` | Atomically pulse DTR, RTS, or break and restore it. |
 | `SRCSerial_getLineStatus` | Read CTS, DSR, DCD, and ring inputs. |
 | `SRCSerial_getDiagnostics` | Read/reset accumulated transport diagnostics. |
+| `SRCSerial_workerStart` | Start the fixed-frame background receive/scheduler worker. |
+| `SRCSerial_workerStop` | Stop worker traffic while optionally preserving captured evidence. |
+| `SRCSerial_workerGetStatus` | Read worker counters, queue depths, errors, ages, and response latency. |
+| `SRCSerial_workerReadEvents` | Read bounded timestamped RX/TX/error events. |
+| `SRCSerial_workerQueueTx` | Queue an immediate, next-valid-RX, or quiet-gap manual frame. |
+| `SRCSerial_cycleCreate` | Create a periodic TX job with optional generated checksum. |
+| `SRCSerial_cycleUpdate` | Atomically update a cyclic frame, period, or enabled state. |
+| `SRCSerial_cycleDestroy` | Destroy a cyclic TX job. |
+| `SRCSerial_responseCreate` | Create a valid-RX-triggered response job. |
+| `SRCSerial_responseUpdate` | Atomically update response bytes, timing, sequence, or enabled state. |
+| `SRCSerial_responseDestroy` | Destroy an RX-triggered response job. |
+| `SRCSerial_rxGetCount` | Inspect worker frame/event queue depths. |
+| `SRCSerial_rxReadFrame` | Peek or consume the oldest timestamped raw frame. |
+| `SRCSerial_rxClear` | Clear worker frames, events, and/or counters. |
 
 The authoritative parameter definitions, enum values, parameter order, array
 bounds, Action Wizard procedure, and examples are in
@@ -104,6 +125,42 @@ SRCSerial_transact(
 `ResponseData`, `ResponseHex`, `BytesRead`, `TimedOut`, and `Attempts` receive
 the result. A timeout is a completed action with `TimedOut=1`; inspect
 `Success` separately for transport or validation failure.
+
+## Background protocol worker
+
+Use the worker when the product requires a response cadence that TestExec steps
+cannot meet reliably. The normal pattern is:
+
+```text
+SRCSerial_start(...)
+SRCSerial_workerStart(RxFrameLength=6, RxIdOffset=0, RxIdValue=0x6A,
+                      RxIdMask=0xFF, RxChecksumMode=1,
+                      RxChecksumStart=0, RxChecksumLength=5,
+                      RxChecksumOffset=5, PollIntervalMs=1)
+SRCSerial_responseCreate(JobId=1, FrameHex="74 0A 00 00",
+                         ResponseMode=1, QuietGapMs=1,
+                         ChecksumMode=1, ChecksumStart=0,
+                         ChecksumLength=3, ChecksumOffset=3)
+// Power and exercise the UUT; poll status/read buffered frames at normal step speed.
+SRCSerial_workerStop(ClearState=1)
+SRCSerial_stop()
+```
+
+`ResponseMode=0` sends after a valid frame and the configured response delay.
+Mode 1 also waits until receive traffic has been quiet for `QuietGapMs`; a new
+valid frame replaces and reschedules a pending response when
+`ReplacePending=1`. `TriggerSkipCount` and `SendCountLimit` can express a
+first-message/steady-message sequence using two generic response jobs.
+
+While the worker runs, normal foreground reads, writes, transactions, queue
+purges, and control-line changes return -1012. Use the worker RX/event/status
+actions and worker-safe job updates instead. Configuration and transport
+diagnostic queries remain available.
+
+The complete JLG joystick example—including Keysight pseudocode, two possible
+startup response sequences, frame decoding, negative tests, and acceptance
+gates—is in
+[`Examples/JLG_Joystick_TestExec_Test_Plan.md`](Examples/JLG_Joystick_TestExec_Test_Plan.md).
 
 ## Session recovery
 
@@ -157,6 +214,12 @@ Validation errors are:
 | -1009 | Installed Moxa driver does not match the required version. |
 | -1010 | The matching COM port is open in this DLL. |
 | -1011 | Moxa registry values have an unexpected type or value. |
+| -1012 | Background worker owns the COM port; use worker-safe actions. |
+| -1013 | A worker job/action requires a running worker. |
+| -1014 | Requested cyclic or response job ID was not found. |
+| -1015 | Requested job ID already exists in its job table. |
+| -1016 | A bounded worker job/manual queue is full. |
+| -1017 | Checksum mode or checksum byte range is invalid. |
 | -1099 | An exception was contained at the exported action boundary. |
 
 `SRCSerial_getDiagnostics` exposes `CE_FRAME`, `CE_RXPARITY`, `CE_OVERRUN`,
@@ -228,7 +291,8 @@ station.
 ## Repository contents
 
 - `SRCSerial.sln` / `SRCSerial.vcxproj`: Win32 DLL project.
-- `src`: Win32 transport, SetupAPI enumeration, UTA helpers, and exports.
+- `src`: Win32 transport, protocol worker, SetupAPI enumeration, UTA helpers,
+  and exports.
 - `actions`: generated UMDs plus the complete recreation reference.
 - `Test/SRCSerialTools.cpp`: UMD generator/inspector, unit tests, and DLL smoke
   test.
@@ -238,6 +302,8 @@ station.
   packaging, metadata, ZIP, and SHA-256 generation.
 - `Docs/FULL_BUILD_BRANCH.md`: layout and deployment instructions for the
   compiled-artifact branch.
+- `Examples/JLG_Joystick_TestExec_Test_Plan.md`: product-specific TestExec
+  worker example and validation plan derived from the JLG protocol findings.
 - `Docs/HARDWARE_SETUP.md`: adapter, wiring, and deployment procedure.
 - `Docs/TESTING.md`: local, loopback, RS-485, and Windows 7 acceptance tests.
 

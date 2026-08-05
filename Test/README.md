@@ -54,8 +54,8 @@ The script:
 1. Builds `SRCSerial.dll` and `SRCSerialTools.exe` as Win32 release binaries.
 2. Runs the pure and closed-session self-tests.
 3. Loads the actual DLL and performs the UTA action smoke test.
-4. Restores and inspects all 23 checked-in UMD files.
-5. Fails if the UMD count is not exactly 23.
+4. Restores and inspects all 37 checked-in UMD files.
+5. Fails if the UMD count is not exactly 37.
 6. Uses `dumpbin`, when available, to display the DLL machine type, exports,
    and imports.
 
@@ -75,8 +75,8 @@ It should also report:
 
 ```text
 14C machine (x86)
-23 number of functions
-23 number of names
+37 number of functions
+37 number of names
 ```
 
 ## Individual commands
@@ -96,10 +96,14 @@ Currently covers:
 - Escape decoding.
 - Hexadecimal decoding and formatting.
 - Invalid and incomplete hex rejection.
+- Generic checksum generation, including the JLG one's-complement example.
+- Invalid worker checksum-range rejection.
 - Session-state and diagnostics queries while closed.
 - Invalid data-bit/stop-bit combinations.
 - Closed-port read, drain, and buffer-query errors.
 - Cancellation while closed.
+- Worker-start rejection without an open port and worker-TX rejection while
+  stopped.
 - Present COM-port enumeration.
 - Idempotent stop.
 
@@ -114,7 +118,7 @@ Test\Release\SRCSerialTools.exe action-smoke Release\SRCSerial.dll
 This command:
 
 - Loads the actual DLL.
-- Verifies all 23 exports.
+- Verifies all 37 exports.
 - Creates and binds a real UTA parameter block.
 - Calls `SRCSerial_getBufferLength` while closed.
 - Verifies the structured `Success=0, ErrorCode=-1002` response.
@@ -208,6 +212,13 @@ Automated desktop checks do not replace physical validation. Before release:
 4. Validate cancellation, disconnect/reconnect, and repeated start/stop.
 5. Use two endpoints for RS-485 2-wire request/response traffic.
 6. Run all actions inside the actual Windows 7 TestExec station.
+7. Run the worker with a second serial endpoint: fixed-frame resynchronization,
+   valid/invalid checksum capture, immediate and quiet-gap response jobs,
+   response byte/checksum updates, cyclic create/update/destroy, event-ring
+   rollover, silence detection, and response-latency logging.
+8. Execute the JLG product sequence in
+   [`../Examples/JLG_Joystick_TestExec_Test_Plan.md`](../Examples/JLG_Joystick_TestExec_Test_Plan.md)
+   with scope-correlated RS-485 timing.
 
 The complete procedure and acceptance criteria are in
 [`../Docs/TESTING.md`](../Docs/TESTING.md).

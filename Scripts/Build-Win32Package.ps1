@@ -81,8 +81,8 @@ try {
     Invoke-Checked $tools "action-smoke" $dll
 
     $umdFiles = @(Get-ChildItem -LiteralPath (Join-Path $repositoryRoot "actions") -Filter "SRCSerial_*.umd")
-    if ($umdFiles.Count -ne 23) {
-        throw "Expected 23 UMD files but found $($umdFiles.Count)."
+    if ($umdFiles.Count -ne 37) {
+        throw "Expected 37 UMD files but found $($umdFiles.Count)."
     }
     foreach ($umd in $umdFiles) {
         Invoke-Checked $tools "inspect" $umd.FullName
@@ -112,6 +112,7 @@ try {
     Copy-Item -LiteralPath (Join-Path $repositoryRoot "actions\README.md") -Destination (Join-Path $actionsRoot "README.md")
     Copy-Item -LiteralPath (Join-Path $repositoryRoot "Docs\HARDWARE_SETUP.md") -Destination $deployRoot
     Copy-Item -LiteralPath (Join-Path $repositoryRoot "Docs\TESTING.md") -Destination $deployRoot
+    Copy-Item -LiteralPath (Join-Path $repositoryRoot "Examples") -Destination $deployRoot -Recurse
 
     Copy-Item -LiteralPath (Join-Path $repositoryRoot "Release\SRCSerial.lib") -Destination $developmentRoot
     Copy-Item -LiteralPath (Join-Path $repositoryRoot "Release\SRCSerial.exp") -Destination $developmentRoot
@@ -152,9 +153,9 @@ try {
     }
     $peText = $peReport -join [Environment]::NewLine
     if ($peText -notmatch "14C machine \(x86\)" -or
-        $peText -notmatch "23 number of functions" -or
-        $peText -notmatch "23 number of names") {
-        throw "The DLL does not have the expected x86/23-export PE structure."
+        $peText -notmatch "37 number of functions" -or
+        $peText -notmatch "37 number of names") {
+        throw "The DLL does not have the expected x86/37-export PE structure."
     }
     Set-Content -LiteralPath (Join-Path $artifactRoot "PE-REPORT.txt") `
         -Value $peReport -Encoding ASCII

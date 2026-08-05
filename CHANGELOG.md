@@ -27,3 +27,12 @@
   and set actions using the locally observed 4.3.0.0 registry convention,
   dynamic COM-to-instance matching, readback verification, and optional
   SetupAPI property refresh.
+- Added a generic fixed-frame background protocol worker with exclusive COM
+  ownership, bounded RX/event queues, high-resolution timing/status, silence
+  detection, and worker-safe manual TX.
+- Added create/update/destroy cyclic TX and valid-RX-triggered response jobs,
+  immediate/quiet-gap scheduling, checksum generation, atomic TX byte updates,
+  and first/steady response sequencing controls.
+- Added 14 TestExec actions/UMDs plus a product-specific JLG joystick TestExec
+  pseudocode plan covering startup, frame decoding, ECM value updates, live-loss
+  recovery, fault handling, cyclic validation, and production acceptance gates.
