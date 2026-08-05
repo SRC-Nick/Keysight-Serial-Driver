@@ -7,7 +7,7 @@ and tools, inspects all UMDs, tests pure parsing/validation behavior, loads
 the DLL through the UTA runtime, checks structured closed-port errors, and
 lists PE exports/imports.
 
-The current public surface contains 23 exports and 23 matching UMD files.
+The current public surface contains 37 exports and 37 matching UMD files.
 
 The checked-in release must additionally build with v142:
 
@@ -66,3 +66,27 @@ msbuild SRCSerial.sln /m /p:Configuration=Release /p:Platform=Win32
   enables `AllowUnverifiedDriver`; never use that override for production until
   the driver layout and behavior have been independently qualified.
 - Tag `v0.1.0` only after both required electrical modes pass on the target.
+
+## Background-worker acceptance
+
+Use two endpoints and a scope or logic analyzer. The worker endpoint must be the
+only code path accessing its COM handle.
+
+1. Configure fixed length, masked ID, and checksum. Inject split frames,
+   multiple frames per read, garbage prefixes, bad IDs, and bad checksums.
+2. Verify RX ordering, timestamps, checksum flags, resynchronization, bounded
+   ring rollover, and clearing.
+3. Measure immediate-response and resettable quiet-gap response behavior.
+4. Update response bytes/checksum under sustained RX; observe only complete old
+   or complete new frames.
+5. Exercise trigger skip/send limits with first-frame and steady-frame jobs.
+6. Create, update, enable/disable, and destroy cyclic jobs; verify periods and
+   generated checksums at the other endpoint.
+7. Exercise manual TX modes, silence events, event-ring rollover, disconnect,
+   worker restart, TestExec abort cleanup, and -1012 foreground-I/O rejection.
+8. Compare `LastResponseLatencyUs`/`MaxResponseLatencyUs` to physical scope
+   timing; software timing cannot include unobservable adapter TX-enable lag.
+
+Run the product-specific sequence in
+[`../Examples/JLG_Joystick_TestExec_Test_Plan.md`](../Examples/JLG_Joystick_TestExec_Test_Plan.md)
+with scope-correlated RS-485 timing.
