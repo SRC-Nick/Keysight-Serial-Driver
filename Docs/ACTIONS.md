@@ -20,6 +20,11 @@ displays a modal dialog.
 - Queues/control: `flush`, `drainTransmit`, `setControlLines`,
   `pulseControlLine`, `getLineStatus`.
 - Health: `getDiagnostics`.
+- Background worker: `workerStart`, `workerStop`, `workerGetStatus`,
+  `workerReadEvents`, `workerQueueTx`.
+- Worker jobs: `cycleCreate`, `cycleUpdate`, `cycleDestroy`, `responseCreate`,
+  `responseUpdate`, `responseDestroy`.
+- Worker RX queue: `rxGetCount`, `rxReadFrame`, `rxClear`.
 
 ## Important semantic distinctions
 
@@ -34,6 +39,11 @@ displays a modal dialog.
   action holding the session lock.
 - `getDiagnostics` accumulates Windows framing, parity, overrun, buffer-overrun,
   and break observations that would otherwise be cleared by `ClearCommError`.
+- While the background worker runs, it exclusively owns foreground serial I/O;
+  TestExec updates jobs and reads worker queues/status instead of timing a loop.
+- Response jobs can send immediately or after a resettable RX quiet gap. Cyclic
+  jobs are free-running and should not be used on a two-wire bus without
+  collision analysis.
 
 ## Validation errors
 
@@ -50,4 +60,10 @@ displays a modal dialog.
 | -1009 | Moxa driver version is not the explicitly expected version. |
 | -1010 | Matching serial port must be closed before mode change. |
 | -1011 | Moxa registry data has an unexpected type or value. |
+| -1012 | Background worker owns the COM port. |
+| -1013 | Worker action requires a running worker. |
+| -1014 | Worker job ID was not found. |
+| -1015 | Worker job ID already exists. |
+| -1016 | Bounded worker queue/table is full. |
+| -1017 | Worker checksum definition is invalid. |
 | -1099 | Unexpected exception contained at the DLL boundary. |

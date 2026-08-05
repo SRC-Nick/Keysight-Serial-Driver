@@ -23,3 +23,17 @@ EXPORTS
     SRCSerial_cancel
     SRCSerial_getMoxaPortMode
     SRCSerial_setMoxaPortMode
+    SRCSerial_workerStart
+    SRCSerial_workerStop
+    SRCSerial_workerGetStatus
+    SRCSerial_workerReadEvents
+    SRCSerial_workerQueueTx
+    SRCSerial_cycleCreate
+    SRCSerial_cycleUpdate
+    SRCSerial_cycleDestroy
+    SRCSerial_responseCreate
+    SRCSerial_responseUpdate
+    SRCSerial_responseDestroy
+    SRCSerial_rxGetCount
+    SRCSerial_rxReadFrame
+    SRCSerial_rxClear

@@ -1,5 +1,6 @@
 #include "SRCSerial_Internal.h"
 
+#include <cstdio>
 #include <cstring>
 
 namespace
@@ -73,6 +74,16 @@ namespace
         }
     }
 
+    std::string FormatUtc(const SYSTEMTIME& value)
+    {
+        if (!value.wYear) return "";
+        char text[40] = { 0 };
+        ::sprintf_s(text, "%04u-%02u-%02uT%02u:%02u:%02u.%03uZ",
+            value.wYear, value.wMonth, value.wDay, value.wHour,
+            value.wMinute, value.wSecond, value.wMilliseconds);
+        return text;
+    }
+
 }
 
 extern "C" void UTAAPI SRCSerial_start(HUTAPB block)
@@ -80,6 +91,8 @@ extern "C" void UTAAPI SRCSerial_start(HUTAPB block)
     srcserial::ClearStatus(block);
     try
     {
+        srcserial::Status status = srcserial::WorkerStop(true);
+        if (!status.success) { srcserial::SetStatus(block, status); return; }
         srcserial::PortConfig config;
         config.port = srcserial::GetString(block, "Port", "COM1");
         config.baudRate = srcserial::GetInt32(block, "BaudRate", 9600);
@@ -101,7 +114,12 @@ extern "C" void UTAAPI SRCSerial_start(HUTAPB block)
 extern "C" void UTAAPI SRCSerial_stop(HUTAPB block)
 {
     srcserial::ClearStatus(block);
-    try { srcserial::SetStatus(block, srcserial::Stop()); }
+    try
+    {
+        srcserial::Status status = srcserial::WorkerStop(true);
+        if (status.success) status = srcserial::Stop();
+        srcserial::SetStatus(block, status);
+    }
     catch (...) { srcserial::SetStatus(block, UnexpectedFailure()); }
 }
 
@@ -574,7 +592,12 @@ extern "C" void UTAAPI SRCSerial_enumeratePorts(HUTAPB block)
 extern "C" void UTAAPI SRCSerial_cancel(HUTAPB block)
 {
     srcserial::ClearStatus(block);
-    try { srcserial::SetStatus(block, srcserial::CancelPending()); }
+    try
+    {
+        srcserial::Status status = srcserial::WorkerStop(false);
+        if (status.success) status = srcserial::CancelPending();
+        srcserial::SetStatus(block, status);
+    }
     catch (...) { srcserial::SetStatus(block, UnexpectedFailure()); }
 }
 
@@ -611,6 +634,394 @@ extern "C" void UTAAPI SRCSerial_setMoxaPortMode(HUTAPB block)
             srcserial::GetInt32(block, "RestartDevice", 0) != 0,
             &mode);
         SetMoxaModeOutputs(block, mode, true);
+        srcserial::SetStatus(block, status);
+    }
+    catch (...) { srcserial::SetStatus(block, UnexpectedFailure()); }
+}
+
+extern "C" void UTAAPI SRCSerial_workerStart(HUTAPB block)
+{
+    srcserial::ClearStatus(block);
+    srcserial::SetInt32(block, "WorkerRunning", 0);
+    try
+    {
+        srcserial::WorkerConfig config;
+        config.rxFrameLength = srcserial::GetInt32(block, "RxFrameLength", 1);
+        config.rxIdOffset = srcserial::GetInt32(block, "RxIdOffset", 0);
+        config.rxIdValue = srcserial::GetInt32(block, "RxIdValue", 0);
+        config.rxIdMask = srcserial::GetInt32(block, "RxIdMask", 0);
+        config.rxChecksumMode = srcserial::GetInt32(block, "RxChecksumMode", 0);
+        config.rxChecksumStart = srcserial::GetInt32(block, "RxChecksumStart", 0);
+        config.rxChecksumLength = srcserial::GetInt32(block, "RxChecksumLength", 0);
+        config.rxChecksumOffset = srcserial::GetInt32(block, "RxChecksumOffset", -1);
+        config.rxQueueCapacity = srcserial::GetInt32(block, "RxQueueCapacity", 256);
+        config.eventQueueCapacity = srcserial::GetInt32(block, "EventQueueCapacity", 512);
+        config.silenceTimeoutMs = srcserial::GetInt32(block, "SilenceTimeoutMs", 1000);
+        config.pollIntervalMs = srcserial::GetInt32(block, "PollIntervalMs", 1);
+        config.minimumInterTxMs = srcserial::GetInt32(block, "MinimumInterTxMs", 0);
+        config.workerPriority = srcserial::GetInt32(block, "WorkerPriority", 1);
+        const srcserial::Status status = srcserial::WorkerStart(config);
+        srcserial::SetInt32(block, "WorkerRunning", srcserial::WorkerIsRunning() ? 1 : 0);
+        srcserial::SetStatus(block, status);
+    }
+    catch (...) { srcserial::SetStatus(block, UnexpectedFailure()); }
+}
+
+extern "C" void UTAAPI SRCSerial_workerStop(HUTAPB block)
+{
+    srcserial::ClearStatus(block);
+    srcserial::SetInt32(block, "WorkerRunning", srcserial::WorkerIsRunning() ? 1 : 0);
+    try
+    {
+        const srcserial::Status status = srcserial::WorkerStop(
+            srcserial::GetInt32(block, "ClearState", 0) != 0);
+        srcserial::SetInt32(block, "WorkerRunning", srcserial::WorkerIsRunning() ? 1 : 0);
+        srcserial::SetStatus(block, status);
+    }
+    catch (...) { srcserial::SetStatus(block, UnexpectedFailure()); }
+}
+
+extern "C" void UTAAPI SRCSerial_workerGetStatus(HUTAPB block)
+{
+    srcserial::ClearStatus(block);
+    const char* integerOutputs[] = { "WorkerRunning", "RxFrameCount",
+        "ValidRxFrameCount", "InvalidRxFrameCount", "ChecksumErrorCount",
+        "BadIdCount", "DroppedByteCount", "TxFrameCount", "ResponseTxCount",
+        "CyclicTxCount", "ManualTxCount", "RxSilenceTimeoutCount",
+        "RxFramesQueued", "EventsQueued", "PendingTxCount", "LastRxAgeMs",
+        "LastResponseLatencyUs", "MaxResponseLatencyUs", "LastValidRxAgeMs",
+        "LastTxAgeMs", "WorkerLastErrorCode" };
+    for (size_t i = 0; i < sizeof(integerOutputs) / sizeof(integerOutputs[0]); ++i)
+        srcserial::SetInt32(block, integerOutputs[i], 0);
+    srcserial::SetString(block, "WorkerLastErrorMessage", "");
+    try
+    {
+        srcserial::WorkerStatus value;
+        const srcserial::Status status = srcserial::WorkerGetStatus(&value,
+            srcserial::GetInt32(block, "ResetCounters", 0) != 0);
+        srcserial::SetInt32(block, "WorkerRunning", value.running ? 1 : 0);
+        srcserial::SetInt32(block, "RxFrameCount", static_cast<long>(value.rxFrameCount));
+        srcserial::SetInt32(block, "ValidRxFrameCount", static_cast<long>(value.validRxFrameCount));
+        srcserial::SetInt32(block, "InvalidRxFrameCount", static_cast<long>(value.invalidRxFrameCount));
+        srcserial::SetInt32(block, "ChecksumErrorCount", static_cast<long>(value.checksumErrorCount));
+        srcserial::SetInt32(block, "BadIdCount", static_cast<long>(value.badIdCount));
+        srcserial::SetInt32(block, "DroppedByteCount", static_cast<long>(value.droppedByteCount));
+        srcserial::SetInt32(block, "TxFrameCount", static_cast<long>(value.txFrameCount));
+        srcserial::SetInt32(block, "ResponseTxCount", static_cast<long>(value.responseTxCount));
+        srcserial::SetInt32(block, "CyclicTxCount", static_cast<long>(value.cyclicTxCount));
+        srcserial::SetInt32(block, "ManualTxCount", static_cast<long>(value.manualTxCount));
+        srcserial::SetInt32(block, "RxSilenceTimeoutCount", static_cast<long>(value.rxSilenceTimeoutCount));
+        srcserial::SetInt32(block, "RxFramesQueued", static_cast<long>(value.rxFramesQueued));
+        srcserial::SetInt32(block, "EventsQueued", static_cast<long>(value.eventsQueued));
+        srcserial::SetInt32(block, "PendingTxCount", static_cast<long>(value.pendingTxCount));
+        srcserial::SetInt32(block, "LastResponseLatencyUs", value.lastResponseLatencyUs);
+        srcserial::SetInt32(block, "MaxResponseLatencyUs", value.maxResponseLatencyUs);
+        srcserial::SetInt32(block, "LastRxAgeMs", value.lastRxAgeMs);
+        srcserial::SetInt32(block, "LastValidRxAgeMs", value.lastValidRxAgeMs);
+        srcserial::SetInt32(block, "LastTxAgeMs", value.lastTxAgeMs);
+        srcserial::SetInt32(block, "WorkerLastErrorCode", value.lastErrorCode);
+        srcserial::SetString(block, "WorkerLastErrorMessage", value.lastErrorMessage.c_str());
+        srcserial::SetStatus(block, status);
+    }
+    catch (...) { srcserial::SetStatus(block, UnexpectedFailure()); }
+}
+
+extern "C" void UTAAPI SRCSerial_workerReadEvents(HUTAPB block)
+{
+    srcserial::ClearStatus(block);
+    srcserial::SetString(block, "EventsText", "");
+    srcserial::SetInt32(block, "EventsReturned", 0);
+    srcserial::SetInt32(block, "EventsRemaining", 0);
+    try
+    {
+        const long maximum = srcserial::GetInt32(block, "MaxEvents", 20);
+        if (maximum <= 0)
+        {
+            srcserial::SetStatus(block, srcserial::Status::Validation(
+                srcserial::ErrorInvalidParameter, "MaxEvents must be positive"));
+            return;
+        }
+        std::string text;
+        DWORD returned = 0, remaining = 0;
+        const srcserial::Status status = srcserial::WorkerReadEvents(
+            static_cast<DWORD>(maximum),
+            srcserial::GetInt32(block, "ClearAfterRead", 1) != 0,
+            &text, &returned, &remaining);
+        srcserial::SetString(block, "EventsText", text.c_str());
+        srcserial::SetInt32(block, "EventsReturned", static_cast<long>(returned));
+        srcserial::SetInt32(block, "EventsRemaining", static_cast<long>(remaining));
+        srcserial::SetStatus(block, status);
+    }
+    catch (...) { srcserial::SetStatus(block, UnexpectedFailure()); }
+}
+
+extern "C" void UTAAPI SRCSerial_workerQueueTx(HUTAPB block)
+{
+    srcserial::ClearStatus(block);
+    srcserial::SetInt32(block, "Queued", 0);
+    srcserial::SetInt32(block, "QueueDepth", 0);
+    try
+    {
+        std::vector<unsigned char> data;
+        const std::string hex = srcserial::GetString(block, "Hex", "");
+        srcserial::Status status = srcserial::DecodeHex(hex.c_str(), &data);
+        const long gap = srcserial::GetInt32(block, "QuietGapMs", 1);
+        DWORD depth = 0;
+        if (status.success && gap >= 0)
+            status = srcserial::WorkerQueueTx(data,
+                srcserial::GetInt32(block, "Mode", 0), static_cast<DWORD>(gap), &depth);
+        else if (status.success)
+            status = srcserial::Status::Validation(srcserial::ErrorInvalidParameter,
+                "QuietGapMs cannot be negative");
+        srcserial::SetInt32(block, "Queued", status.success ? 1 : 0);
+        srcserial::SetInt32(block, "QueueDepth", static_cast<long>(depth));
+        srcserial::SetStatus(block, status);
+    }
+    catch (...) { srcserial::SetStatus(block, UnexpectedFailure()); }
+}
+
+extern "C" void UTAAPI SRCSerial_cycleCreate(HUTAPB block)
+{
+    srcserial::ClearStatus(block);
+    srcserial::SetString(block, "AppliedHex", "");
+    srcserial::SetInt32(block, "ActiveCycles", 0);
+    try
+    {
+        std::vector<unsigned char> data;
+        srcserial::Status status = srcserial::DecodeHex(
+            srcserial::GetString(block, "FrameHex", "").c_str(), &data);
+        const long period = srcserial::GetInt32(block, "PeriodMs", 1000);
+        const long delay = srcserial::GetInt32(block, "InitialDelayMs", 0);
+        std::string applied;
+        DWORD active = 0;
+        if (status.success && period > 0 && delay >= 0)
+            status = srcserial::CycleCreate(srcserial::GetInt32(block, "JobId", 1),
+                data, static_cast<DWORD>(period), static_cast<DWORD>(delay),
+                srcserial::GetInt32(block, "Enabled", 1) != 0,
+                srcserial::GetInt32(block, "ChecksumMode", 0),
+                srcserial::GetInt32(block, "ChecksumStart", 0),
+                srcserial::GetInt32(block, "ChecksumLength", 0),
+                srcserial::GetInt32(block, "ChecksumOffset", -1), &applied, &active);
+        else if (status.success)
+            status = srcserial::Status::Validation(srcserial::ErrorInvalidParameter,
+                "PeriodMs must be positive and InitialDelayMs cannot be negative");
+        srcserial::SetString(block, "AppliedHex", applied.c_str());
+        srcserial::SetInt32(block, "ActiveCycles", static_cast<long>(active));
+        srcserial::SetStatus(block, status);
+    }
+    catch (...) { srcserial::SetStatus(block, UnexpectedFailure()); }
+}
+
+extern "C" void UTAAPI SRCSerial_cycleUpdate(HUTAPB block)
+{
+    srcserial::ClearStatus(block);
+    srcserial::SetString(block, "AppliedHex", "");
+    srcserial::SetInt32(block, "ActiveCycles", 0);
+    try
+    {
+        const std::string hex = srcserial::GetString(block, "FrameHex", "");
+        std::vector<unsigned char> replacement;
+        srcserial::Status status = srcserial::Status::Ok();
+        const std::vector<unsigned char>* replacementPointer = NULL;
+        if (!hex.empty())
+        {
+            status = srcserial::DecodeHex(hex.c_str(), &replacement);
+            replacementPointer = &replacement;
+        }
+        std::string applied;
+        DWORD active = 0;
+        if (status.success)
+            status = srcserial::CycleUpdate(srcserial::GetInt32(block, "JobId", 1),
+                replacementPointer, srcserial::GetInt32(block, "ByteOffset", -1),
+                srcserial::GetInt32(block, "ByteValue", 0),
+                srcserial::GetInt32(block, "PeriodMs", -1),
+                srcserial::GetInt32(block, "Enabled", -1),
+                srcserial::GetInt32(block, "RecalculateChecksum", 1) != 0,
+                &applied, &active);
+        srcserial::SetString(block, "AppliedHex", applied.c_str());
+        srcserial::SetInt32(block, "ActiveCycles", static_cast<long>(active));
+        srcserial::SetStatus(block, status);
+    }
+    catch (...) { srcserial::SetStatus(block, UnexpectedFailure()); }
+}
+
+extern "C" void UTAAPI SRCSerial_cycleDestroy(HUTAPB block)
+{
+    srcserial::ClearStatus(block);
+    srcserial::SetInt32(block, "Found", 0);
+    srcserial::SetInt32(block, "ActiveCycles", 0);
+    try
+    {
+        bool found = false;
+        DWORD active = 0;
+        const srcserial::Status status = srcserial::CycleDestroy(
+            srcserial::GetInt32(block, "JobId", 1), &found, &active);
+        srcserial::SetInt32(block, "Found", found ? 1 : 0);
+        srcserial::SetInt32(block, "ActiveCycles", static_cast<long>(active));
+        srcserial::SetStatus(block, status);
+    }
+    catch (...) { srcserial::SetStatus(block, UnexpectedFailure()); }
+}
+
+extern "C" void UTAAPI SRCSerial_responseCreate(HUTAPB block)
+{
+    srcserial::ClearStatus(block);
+    srcserial::SetString(block, "AppliedHex", "");
+    srcserial::SetInt32(block, "ActiveResponses", 0);
+    try
+    {
+        std::vector<unsigned char> data;
+        srcserial::Status status = srcserial::DecodeHex(
+            srcserial::GetString(block, "FrameHex", "").c_str(), &data);
+        const long delay = srcserial::GetInt32(block, "ResponseDelayMs", 0);
+        const long gap = srcserial::GetInt32(block, "QuietGapMs", 1);
+        const long skip = srcserial::GetInt32(block, "TriggerSkipCount", 0);
+        const long limit = srcserial::GetInt32(block, "SendCountLimit", 0);
+        std::string applied;
+        DWORD active = 0;
+        if (status.success && delay >= 0 && gap >= 0 && skip >= 0 && limit >= 0)
+            status = srcserial::ResponseCreate(srcserial::GetInt32(block, "JobId", 1),
+                data, srcserial::GetInt32(block, "TriggerOffset", -1),
+                srcserial::GetInt32(block, "TriggerValue", 0),
+                srcserial::GetInt32(block, "TriggerMask", 255),
+                srcserial::GetInt32(block, "ResponseMode", 1),
+                static_cast<DWORD>(delay), static_cast<DWORD>(gap),
+                srcserial::GetInt32(block, "ReplacePending", 1) != 0,
+                srcserial::GetInt32(block, "Enabled", 1) != 0,
+                static_cast<DWORD>(skip), static_cast<DWORD>(limit),
+                srcserial::GetInt32(block, "ChecksumMode", 0),
+                srcserial::GetInt32(block, "ChecksumStart", 0),
+                srcserial::GetInt32(block, "ChecksumLength", 0),
+                srcserial::GetInt32(block, "ChecksumOffset", -1), &applied, &active);
+        else if (status.success)
+            status = srcserial::Status::Validation(srcserial::ErrorInvalidParameter,
+                "ResponseDelayMs, QuietGapMs, TriggerSkipCount, and SendCountLimit cannot be negative");
+        srcserial::SetString(block, "AppliedHex", applied.c_str());
+        srcserial::SetInt32(block, "ActiveResponses", static_cast<long>(active));
+        srcserial::SetStatus(block, status);
+    }
+    catch (...) { srcserial::SetStatus(block, UnexpectedFailure()); }
+}
+
+extern "C" void UTAAPI SRCSerial_responseUpdate(HUTAPB block)
+{
+    srcserial::ClearStatus(block);
+    srcserial::SetString(block, "AppliedHex", "");
+    srcserial::SetInt32(block, "ActiveResponses", 0);
+    try
+    {
+        const std::string hex = srcserial::GetString(block, "FrameHex", "");
+        std::vector<unsigned char> replacement;
+        srcserial::Status status = srcserial::Status::Ok();
+        const std::vector<unsigned char>* replacementPointer = NULL;
+        if (!hex.empty())
+        {
+            status = srcserial::DecodeHex(hex.c_str(), &replacement);
+            replacementPointer = &replacement;
+        }
+        std::string applied;
+        DWORD active = 0;
+        if (status.success)
+            status = srcserial::ResponseUpdate(srcserial::GetInt32(block, "JobId", 1),
+                replacementPointer, srcserial::GetInt32(block, "ByteOffset", -1),
+                srcserial::GetInt32(block, "ByteValue", 0),
+                srcserial::GetInt32(block, "ResponseMode", -1),
+                srcserial::GetInt32(block, "ResponseDelayMs", -1),
+                srcserial::GetInt32(block, "QuietGapMs", -1),
+                srcserial::GetInt32(block, "ReplacePending", -1),
+                srcserial::GetInt32(block, "Enabled", -1),
+                srcserial::GetInt32(block, "ResetTriggerCounter", 0) != 0,
+                srcserial::GetInt32(block, "RecalculateChecksum", 1) != 0,
+                &applied, &active);
+        srcserial::SetString(block, "AppliedHex", applied.c_str());
+        srcserial::SetInt32(block, "ActiveResponses", static_cast<long>(active));
+        srcserial::SetStatus(block, status);
+    }
+    catch (...) { srcserial::SetStatus(block, UnexpectedFailure()); }
+}
+
+extern "C" void UTAAPI SRCSerial_responseDestroy(HUTAPB block)
+{
+    srcserial::ClearStatus(block);
+    srcserial::SetInt32(block, "Found", 0);
+    srcserial::SetInt32(block, "ActiveResponses", 0);
+    try
+    {
+        bool found = false;
+        DWORD active = 0;
+        const srcserial::Status status = srcserial::ResponseDestroy(
+            srcserial::GetInt32(block, "JobId", 1), &found, &active);
+        srcserial::SetInt32(block, "Found", found ? 1 : 0);
+        srcserial::SetInt32(block, "ActiveResponses", static_cast<long>(active));
+        srcserial::SetStatus(block, status);
+    }
+    catch (...) { srcserial::SetStatus(block, UnexpectedFailure()); }
+}
+
+extern "C" void UTAAPI SRCSerial_rxGetCount(HUTAPB block)
+{
+    srcserial::ClearStatus(block);
+    srcserial::SetInt32(block, "FramesAvailable", 0);
+    srcserial::SetInt32(block, "EventsAvailable", 0);
+    srcserial::SetInt32(block, "StreamBytes", 0);
+    try
+    {
+        DWORD frames = 0, events = 0, streamBytes = 0;
+        const srcserial::Status status = srcserial::RxGetCount(&frames, &events,
+            &streamBytes);
+        srcserial::SetInt32(block, "FramesAvailable", static_cast<long>(frames));
+        srcserial::SetInt32(block, "EventsAvailable", static_cast<long>(events));
+        srcserial::SetInt32(block, "StreamBytes", static_cast<long>(streamBytes));
+        srcserial::SetStatus(block, status);
+    }
+    catch (...) { srcserial::SetStatus(block, UnexpectedFailure()); }
+}
+
+extern "C" void UTAAPI SRCSerial_rxReadFrame(HUTAPB block)
+{
+    srcserial::ClearStatus(block);
+    srcserial::SetInt32(block, "Found", 0);
+    srcserial::SetInt32(block, "BytesRead", 0);
+    srcserial::SetString(block, "Hex", "");
+    srcserial::SetInt32(block, "Sequence", 0);
+    srcserial::SetString(block, "TimestampUtc", "");
+    srcserial::SetInt32(block, "AgeMs", -1);
+    srcserial::SetInt32(block, "ChecksumValid", 0);
+    srcserial::SetInt32(block, "FramesRemaining", 0);
+    try
+    {
+        srcserial::WorkerFrame frame;
+        DWORD remaining = 0;
+        srcserial::Status status = srcserial::RxReadFrame(
+            srcserial::GetInt32(block, "Remove", 1) != 0, &frame, &remaining);
+        if (status.success && frame.found)
+            status = WriteByteArray(block, "Data", frame.data);
+        srcserial::SetInt32(block, "Found", frame.found ? 1 : 0);
+        srcserial::SetInt32(block, "BytesRead", static_cast<long>(frame.data.size()));
+        srcserial::SetString(block, "Hex", srcserial::FormatHex(
+            frame.data.empty() ? NULL : &frame.data[0], frame.data.size()).c_str());
+        srcserial::SetInt32(block, "Sequence", static_cast<long>(frame.sequence));
+        srcserial::SetString(block, "TimestampUtc", FormatUtc(frame.timestampUtc).c_str());
+        srcserial::SetInt32(block, "AgeMs", frame.ageMs);
+        srcserial::SetInt32(block, "ChecksumValid", frame.checksumValid ? 1 : 0);
+        srcserial::SetInt32(block, "FramesRemaining", static_cast<long>(remaining));
+        srcserial::SetStatus(block, status);
+    }
+    catch (...) { srcserial::SetStatus(block, UnexpectedFailure()); }
+}
+
+extern "C" void UTAAPI SRCSerial_rxClear(HUTAPB block)
+{
+    srcserial::ClearStatus(block);
+    srcserial::SetInt32(block, "Cleared", 0);
+    try
+    {
+        bool cleared = false;
+        const srcserial::Status status = srcserial::RxClear(
+            srcserial::GetInt32(block, "ClearFrames", 1) != 0,
+            srcserial::GetInt32(block, "ClearEvents", 1) != 0,
+            srcserial::GetInt32(block, "ClearCounters", 0) != 0, &cleared);
+        srcserial::SetInt32(block, "Cleared", cleared ? 1 : 0);
         srcserial::SetStatus(block, status);
     }
     catch (...) { srcserial::SetStatus(block, UnexpectedFailure()); }

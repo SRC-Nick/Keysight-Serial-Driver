@@ -23,6 +23,12 @@ namespace srcserial
         ErrorMoxaDriverMismatch = -1009,
         ErrorPortInUse = -1010,
         ErrorMoxaRegistry = -1011,
+        ErrorWorkerActive = -1012,
+        ErrorWorkerNotRunning = -1013,
+        ErrorWorkerJobNotFound = -1014,
+        ErrorWorkerDuplicateJob = -1015,
+        ErrorWorkerQueueFull = -1016,
+        ErrorWorkerChecksum = -1017,
         ErrorInternal = -1099
     };
 
@@ -103,8 +109,70 @@ namespace srcserial
         MoxaPortMode();
     };
 
+    struct WorkerConfig
+    {
+        long rxFrameLength;
+        long rxIdOffset;
+        long rxIdValue;
+        long rxIdMask;
+        long rxChecksumMode;
+        long rxChecksumStart;
+        long rxChecksumLength;
+        long rxChecksumOffset;
+        long rxQueueCapacity;
+        long eventQueueCapacity;
+        long silenceTimeoutMs;
+        long pollIntervalMs;
+        long minimumInterTxMs;
+        long workerPriority;
+
+        WorkerConfig();
+    };
+
+    struct WorkerStatus
+    {
+        bool running;
+        DWORD rxFrameCount;
+        DWORD validRxFrameCount;
+        DWORD invalidRxFrameCount;
+        DWORD checksumErrorCount;
+        DWORD badIdCount;
+        DWORD droppedByteCount;
+        DWORD txFrameCount;
+        DWORD responseTxCount;
+        DWORD cyclicTxCount;
+        DWORD manualTxCount;
+        DWORD rxSilenceTimeoutCount;
+        DWORD rxFramesQueued;
+        DWORD eventsQueued;
+        DWORD pendingTxCount;
+        long lastResponseLatencyUs;
+        long maxResponseLatencyUs;
+        long lastRxAgeMs;
+        long lastValidRxAgeMs;
+        long lastTxAgeMs;
+        long lastErrorCode;
+        std::string lastErrorMessage;
+
+        WorkerStatus();
+    };
+
+    struct WorkerFrame
+    {
+        bool found;
+        bool checksumValid;
+        DWORD sequence;
+        SYSTEMTIME timestampUtc;
+        long ageMs;
+        std::vector<unsigned char> data;
+
+        WorkerFrame();
+    };
+
     void Initialize(HMODULE module);
     void Shutdown();
+    void InitializeWorker();
+    void ShutdownWorker(bool processTerminating);
     Status Start(const PortConfig& config);
     Status Stop();
     Status CancelPending();
@@ -133,6 +201,44 @@ namespace srcserial
         const char* expectedDriverVersion, bool allowUnverifiedDriver,
         bool restartDevice, MoxaPortMode* mode);
     std::string NormalizePortName(const char* port, Status* status);
+
+    bool WorkerBlocksCurrentThread();
+    bool WorkerIsRunning();
+    Status WorkerStart(const WorkerConfig& config);
+    Status WorkerStop(bool clearState);
+    Status WorkerGetStatus(WorkerStatus* status, bool resetCounters);
+    Status WorkerReadEvents(DWORD maximum, bool clearAfterRead,
+        std::string* text, DWORD* returned, DWORD* remaining);
+    Status WorkerQueueTx(const std::vector<unsigned char>& data, long mode,
+        DWORD quietGapMs, DWORD* queueDepth);
+    Status CycleCreate(long jobId, const std::vector<unsigned char>& data,
+        DWORD periodMs, DWORD initialDelayMs, bool enabled,
+        long checksumMode, long checksumStart, long checksumLength,
+        long checksumOffset, std::string* appliedHex, DWORD* activeCount);
+    Status CycleUpdate(long jobId, const std::vector<unsigned char>* replacement,
+        long byteOffset, long byteValue, long periodMs, long enabled,
+        bool recalculateChecksum, std::string* appliedHex, DWORD* activeCount);
+    Status CycleDestroy(long jobId, bool* found, DWORD* activeCount);
+    Status ResponseCreate(long jobId, const std::vector<unsigned char>& data,
+        long triggerOffset, long triggerValue, long triggerMask,
+        long responseMode, DWORD responseDelayMs, DWORD quietGapMs,
+        bool replacePending, bool enabled, DWORD triggerSkipCount,
+        DWORD sendCountLimit, long checksumMode,
+        long checksumStart, long checksumLength, long checksumOffset,
+        std::string* appliedHex, DWORD* activeCount);
+    Status ResponseUpdate(long jobId, const std::vector<unsigned char>* replacement,
+        long byteOffset, long byteValue, long responseMode,
+        long responseDelayMs, long quietGapMs, long replacePending,
+        long enabled, bool resetTriggerCounter, bool recalculateChecksum,
+        std::string* appliedHex, DWORD* activeCount);
+    Status ResponseDestroy(long jobId, bool* found, DWORD* activeCount);
+    Status RxGetCount(DWORD* framesAvailable, DWORD* eventsAvailable,
+        DWORD* streamBytes);
+    Status RxReadFrame(bool remove, WorkerFrame* frame, DWORD* remaining);
+    Status RxClear(bool clearFrames, bool clearEvents, bool clearCounters,
+        bool* cleared);
+    Status ApplyFrameChecksum(std::vector<unsigned char>* data, long mode,
+        long start, long length, long offset);
 
     bool HasParameter(HUTAPB block, const char* name);
     long GetInt32(HUTAPB block, const char* name, long defaultValue);

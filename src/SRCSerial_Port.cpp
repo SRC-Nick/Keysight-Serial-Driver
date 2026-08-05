@@ -497,6 +497,8 @@ namespace srcserial
 
     Status Start(const PortConfig& requested)
     {
+        if (WorkerBlocksCurrentThread())
+            return Status::Validation(ErrorWorkerActive, "Protocol worker owns the serial port; stop it before reopening the session");
         ScopedLock lock;
         ClosePortNoLock();
         CloseLog();
@@ -602,6 +604,8 @@ namespace srcserial
 
     Status Stop()
     {
+        if (WorkerBlocksCurrentThread())
+            return Status::Validation(ErrorWorkerActive, "Protocol worker owns the serial port; stop the worker first");
         ScopedLock lock;
         ClosePortNoLock();
         LogLine(1, "serial port closed");
@@ -673,6 +677,8 @@ namespace srcserial
     Status GetBufferLength(DWORD* bytesAvailable)
     {
         if (!bytesAvailable) return Status::Validation(ErrorInvalidParameter, "BytesAvailable output is required");
+        if (WorkerBlocksCurrentThread())
+            return Status::Validation(ErrorWorkerActive, "Protocol worker owns receive; use the worker RX queue actions");
         ScopedLock lock;
         *bytesAvailable = 0;
         if (g_port == INVALID_HANDLE_VALUE) return Status::Validation(ErrorNotOpen, "Serial port is not open");
@@ -686,6 +692,8 @@ namespace srcserial
         std::vector<unsigned char>* data, bool* timedOut)
     {
         if (!data || !timedOut) return Status::Validation(ErrorInvalidParameter, "Read output is required");
+        if (WorkerBlocksCurrentThread())
+            return Status::Validation(ErrorWorkerActive, "Protocol worker owns receive; use the worker RX queue actions");
         ScopedLock lock;
         data->clear();
         *timedOut = false;
@@ -703,6 +711,8 @@ namespace srcserial
         DWORD* bytesRead, bool* timedOut)
     {
         if (!text || !bytesRead || !timedOut) return Status::Validation(ErrorInvalidParameter, "String read output is required");
+        if (WorkerBlocksCurrentThread())
+            return Status::Validation(ErrorWorkerActive, "Protocol worker owns receive; use the worker RX queue actions");
         ScopedLock lock;
         text->clear();
         *bytesRead = 0;
@@ -734,6 +744,8 @@ namespace srcserial
             return Status::Validation(ErrorInvalidParameter, "Read outputs and positive MaxBytes are required");
         if (interByteTimeoutMs == 0)
             return Status::Validation(ErrorInvalidParameter, "InterByteTimeoutMs must be positive");
+        if (WorkerBlocksCurrentThread())
+            return Status::Validation(ErrorWorkerActive, "Protocol worker owns receive; use the worker RX queue actions");
         ScopedLock lock;
         if (g_port == INVALID_HANDLE_VALUE) return Status::Validation(ErrorNotOpen, "Serial port is not open");
         InterlockedExchange(&g_cancelRequested, 0);
@@ -747,6 +759,8 @@ namespace srcserial
     {
         if (!bytesWritten || (count && !data))
             return Status::Validation(ErrorInvalidParameter, "Write input/output is required");
+        if (WorkerBlocksCurrentThread())
+            return Status::Validation(ErrorWorkerActive, "Protocol worker owns transmit; use worker jobs or workerQueueTx");
         ScopedLock lock;
         *bytesWritten = 0;
         if (g_port == INVALID_HANDLE_VALUE) return Status::Validation(ErrorNotOpen, "Serial port is not open");
@@ -775,6 +789,8 @@ namespace srcserial
             return Status::Validation(ErrorInvalidParameter, "InterByteTimeoutMs must be positive and Retries must be 0 through 100");
         if (config.preTransmitDelayMs > 60000 || config.postTransmitDelayMs > 60000)
             return Status::Validation(ErrorInvalidParameter, "Transaction delays cannot exceed 60000 ms");
+        if (WorkerBlocksCurrentThread())
+            return Status::Validation(ErrorWorkerActive, "Protocol worker owns the serial port; stop it before using transact");
 
         ScopedLock lock;
         response->clear();
@@ -824,6 +840,8 @@ namespace srcserial
 
     Status Flush(long mask)
     {
+        if (WorkerBlocksCurrentThread())
+            return Status::Validation(ErrorWorkerActive, "Protocol worker owns the serial queues; use rxClear or stop the worker");
         ScopedLock lock;
         if (g_port == INVALID_HANDLE_VALUE) return Status::Validation(ErrorNotOpen, "Serial port is not open");
         if (mask < 1 || mask > 3) return Status::Validation(ErrorInvalidParameter, "FlushMask must be 1, 2, or 3");
@@ -836,6 +854,8 @@ namespace srcserial
     Status DrainTransmit(DWORD timeoutMs, bool* timedOut)
     {
         if (!timedOut) return Status::Validation(ErrorInvalidParameter, "TimedOut output is required");
+        if (WorkerBlocksCurrentThread())
+            return Status::Validation(ErrorWorkerActive, "Protocol worker owns transmit; query worker status instead");
         ScopedLock lock;
         *timedOut = false;
         if (g_port == INVALID_HANDLE_VALUE) return Status::Validation(ErrorNotOpen, "Serial port is not open");
@@ -859,6 +879,8 @@ namespace srcserial
 
     Status SetControlLines(long dtr, long rts, long breakState)
     {
+        if (WorkerBlocksCurrentThread())
+            return Status::Validation(ErrorWorkerActive, "Stop the protocol worker before changing control lines");
         ScopedLock lock;
         if (g_port == INVALID_HANDLE_VALUE) return Status::Validation(ErrorNotOpen, "Serial port is not open");
         InterlockedExchange(&g_cancelRequested, 0);
@@ -880,6 +902,8 @@ namespace srcserial
         if (line < 0 || line > 2 || state < 0 || state > 1 ||
             restoreState < -1 || restoreState > 1 || durationMs > 60000)
             return Status::Validation(ErrorInvalidParameter, "Line must be 0..2, states -1..1, and duration <= 60000 ms");
+        if (WorkerBlocksCurrentThread())
+            return Status::Validation(ErrorWorkerActive, "Stop the protocol worker before pulsing control lines");
         ScopedLock lock;
         if (g_port == INVALID_HANDLE_VALUE) return Status::Validation(ErrorNotOpen, "Serial port is not open");
         InterlockedExchange(&g_cancelRequested, 0);
