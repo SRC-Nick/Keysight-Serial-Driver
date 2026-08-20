@@ -11,7 +11,7 @@ File Type: DLL
 FILE HEADER VALUES
              14C machine (x86)
                5 number of sections
-        6A73A626 time date stamp Wed Aug  5 16:07:50 2026
+        6A875C0F time date stamp Thu Aug 20 14:57:03 2026
                0 file pointer to symbol table
                0 number of symbols
               E0 size of optional header
@@ -26,7 +26,7 @@ OPTIONAL HEADER VALUES
            45000 size of code
            15400 size of initialized data
                0 size of uninitialized data
-           26C21 entry point (10026C21) __DllMainCRTStartup@12
+           26B32 entry point (10026B32) __DllMainCRTStartup@12
             1000 base of code
            46000 base of data
         10000000 image base (10000000 to 1005CFFF)
@@ -54,7 +54,7 @@ OPTIONAL HEADER VALUES
            58000 [     1E0] RVA [size] of Resource Directory
                0 [       0] RVA [size] of Exception Directory
                0 [       0] RVA [size] of Certificates Directory
-           59000 [    3B64] RVA [size] of Base Relocation Directory
+           59000 [    3B38] RVA [size] of Base Relocation Directory
            50200 [      70] RVA [size] of Debug Directory
                0 [       0] RVA [size] of Architecture Directory
                0 [       0] RVA [size] of Global Pointer Directory
@@ -69,8 +69,8 @@ OPTIONAL HEADER VALUES
 
 SECTION HEADER #1
    .text name
-   44FE7 virtual size
-    1000 virtual address (10001000 to 10045FE6)
+   44EF7 virtual size
+    1000 virtual address (10001000 to 10045EF6)
    45000 size of raw data
      400 file pointer to raw data (00000400 to 000453FF)
        0 file pointer to relocation table
@@ -99,10 +99,10 @@ SECTION HEADER #2
 
         Time Type        Size      RVA  Pointer
     -------- ------- -------- -------- --------
-    6A73A626 cv            88 00050EE4    502E4    Format: RSDS, {19075F45-C58B-445E-B7A0-FB4E37CC895A}, 1, C:\Users\ndapprich\OneDrive - SRC Electrical\Documents\Programming\Keysight Serial Driver\Release\SRCSerial.pdb
-    6A73A626 feat          14 00050F6C    5036C    Counts: Pre-VC++ 11.00=0, C/C++=279, /GS=279, /sdl=7, guardN=271
-    6A73A626 coffgrp      328 00050F80    50380    4C544347 (LTCG)
-    6A73A626 iltcg          0 00000000        0
+    6A875C0F cv            88 00050EE4    502E4    Format: RSDS, {36003EC5-9F13-40D4-8A4F-15C753DE30C8}, 1, C:\Users\ndapprich\OneDrive - SRC Electrical\Documents\Programming\Keysight Serial Driver\Release\SRCSerial.pdb
+    6A875C0F feat          14 00050F6C    5036C    Counts: Pre-VC++ 11.00=0, C/C++=279, /GS=279, /sdl=7, guardN=271
+    6A875C0F coffgrp      328 00050F80    50380    4C544347 (LTCG)
+    6A875C0F iltcg          0 00000000        0
 
   Section contains the following exports for SRCSerial.dll
 
@@ -116,9 +116,9 @@ SECTION HEADER #2
     ordinal hint RVA      name
 
           1    0 00007370 SRCSerial_cancel = _SRCSerial_cancel@4
-          2    1 000095D0 SRCSerial_cycleCreate = _SRCSerial_cycleCreate@4
-          3    2 0000A130 SRCSerial_cycleDestroy = _SRCSerial_cycleDestroy@4
-          4    3 00009BA0 SRCSerial_cycleUpdate = _SRCSerial_cycleUpdate@4
+          2    1 00009500 SRCSerial_cycleCreate = _SRCSerial_cycleCreate@4
+          3    2 0000A060 SRCSerial_cycleDestroy = _SRCSerial_cycleDestroy@4
+          4    3 00009AD0 SRCSerial_cycleUpdate = _SRCSerial_cycleUpdate@4
           5    4 00006E80 SRCSerial_drainTransmit = _SRCSerial_drainTransmit@4
           6    5 00007120 SRCSerial_enumeratePorts = _SRCSerial_enumeratePorts@4
           7    6 00003CF0 SRCSerial_flush = _SRCSerial_flush@4
@@ -133,22 +133,22 @@ SECTION HEADER #2
          16    F 000053F0 SRCSerial_readHex = _SRCSerial_readHex@4
          17   10 00002A60 SRCSerial_readString = _SRCSerial_readString@4
          18   11 00004B90 SRCSerial_readUntilIdle = _SRCSerial_readUntilIdle@4
-         19   12 0000A340 SRCSerial_responseCreate = _SRCSerial_responseCreate@4
-         20   13 0000B190 SRCSerial_responseDestroy = _SRCSerial_responseDestroy@4
-         21   14 0000AAF0 SRCSerial_responseUpdate = _SRCSerial_responseUpdate@4
-         22   15 0000BC20 SRCSerial_rxClear = _SRCSerial_rxClear@4
-         23   16 0000B3A0 SRCSerial_rxGetCount = _SRCSerial_rxGetCount@4
-         24   17 0000B5A0 SRCSerial_rxReadFrame = _SRCSerial_rxReadFrame@4
+         19   12 0000A270 SRCSerial_responseCreate = _SRCSerial_responseCreate@4
+         20   13 0000B0C0 SRCSerial_responseDestroy = _SRCSerial_responseDestroy@4
+         21   14 0000AA20 SRCSerial_responseUpdate = _SRCSerial_responseUpdate@4
+         22   15 0000BB50 SRCSerial_rxClear = _SRCSerial_rxClear@4
+         23   16 0000B2D0 SRCSerial_rxGetCount = _SRCSerial_rxGetCount@4
+         24   17 0000B4D0 SRCSerial_rxReadFrame = _SRCSerial_rxReadFrame@4
          25   18 00003E90 SRCSerial_setControlLines = _SRCSerial_setControlLines@4
-         26   19 00007A70 SRCSerial_setMoxaPortMode = _SRCSerial_setMoxaPortMode@4
+         26   19 000079E0 SRCSerial_setMoxaPortMode = _SRCSerial_setMoxaPortMode@4
          27   1A 000019D0 SRCSerial_start = _SRCSerial_start@4
          28   1B 00002010 SRCSerial_stop = _SRCSerial_stop@4
          29   1C 000058F0 SRCSerial_transact = _SRCSerial_transact@4
-         30   1D 00008860 SRCSerial_workerGetStatus = _SRCSerial_workerGetStatus@4
-         31   1E 000091F0 SRCSerial_workerQueueTx = _SRCSerial_workerQueueTx@4
-         32   1F 00008DF0 SRCSerial_workerReadEvents = _SRCSerial_workerReadEvents@4
-         33   20 00008180 SRCSerial_workerStart = _SRCSerial_workerStart@4
-         34   21 00008620 SRCSerial_workerStop = _SRCSerial_workerStop@4
+         30   1D 00008790 SRCSerial_workerGetStatus = _SRCSerial_workerGetStatus@4
+         31   1E 00009120 SRCSerial_workerQueueTx = _SRCSerial_workerQueueTx@4
+         32   1F 00008D20 SRCSerial_workerReadEvents = _SRCSerial_workerReadEvents@4
+         33   20 000080B0 SRCSerial_workerStart = _SRCSerial_workerStart@4
+         34   21 00008550 SRCSerial_workerStop = _SRCSerial_workerStop@4
          35   22 00003170 SRCSerial_writeBytes = _SRCSerial_writeBytes@4
          36   23 000050D0 SRCSerial_writeHex = _SRCSerial_writeHex@4
          37   24 00003710 SRCSerial_writeString = _SRCSerial_writeString@4
@@ -339,8 +339,8 @@ SECTION HEADER #4
 
 SECTION HEADER #5
   .reloc name
-    3B64 virtual size
-   59000 virtual address (10059000 to 1005CB63)
+    3B38 virtual size
+   59000 virtual address (10059000 to 1005CB37)
     3C00 size of raw data
    55E00 file pointer to raw data (00055E00 to 000599FF)
        0 file pointer to relocation table
