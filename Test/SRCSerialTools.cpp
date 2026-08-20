@@ -447,6 +447,8 @@ namespace
 
         ActionRoutine getMoxa = reinterpret_cast<ActionRoutine>(
             GetProcAddress(dll, "SRCSerial_getMoxaPortMode"));
+        ActionRoutine setMoxa = reinterpret_cast<ActionRoutine>(
+            GetProcAddress(dll, "SRCSerial_setMoxaPortMode"));
         HUTAPBDEF moxaDefinition = UtaPbDefCreate();
         std::vector<ParmSpec> moxaParms;
         moxaParms.push_back(String("Port", "COM1"));
@@ -474,6 +476,44 @@ namespace
         UtaPbUnBind(moxaBlock);
         UtaPbRelease(moxaBlock);
         UtaPbDefRelease(moxaDefinition);
+
+        HUTAPBDEF setMoxaDefinition = UtaPbDefCreate();
+        std::vector<ParmSpec> setMoxaParms;
+        setMoxaParms.push_back(String("Port", "COM999"));
+        setMoxaParms.push_back(Int32("InterfaceMode", 2));
+        setMoxaParms.push_back(String("ExpectedDriverVersion",
+            "intentionally-wrong-version"));
+        setMoxaParms.push_back(Int32("AllowUnverifiedDriver", 0));
+        setMoxaParms.push_back(Int32("RestartDevice", 0));
+        setMoxaParms.push_back(Int32("Found", 0, true));
+        setMoxaParms.push_back(Int32("PreviousMode", -1, true));
+        setMoxaParms.push_back(Int32("CurrentMode", -1, true));
+        setMoxaParms.push_back(Int32("TxMode", -1, true));
+        setMoxaParms.push_back(String("InstanceId", "", true));
+        setMoxaParms.push_back(String("DriverVersion", "", true));
+        setMoxaParms.push_back(Int32("RegistryUpdated", 0, true));
+        setMoxaParms.push_back(Int32("RestartAttempted", 0, true));
+        setMoxaParms.push_back(Int32("RestartSucceeded", 0, true));
+        setMoxaParms.push_back(Int32("RestartRequired", 0, true));
+        AddCommon(&setMoxaParms);
+        for (size_t i = 0; i < setMoxaParms.size(); ++i)
+            AddParm(setMoxaDefinition, setMoxaParms[i]);
+        HUTAPB setMoxaBlock = UtaPbDefCreateParameterBlock(setMoxaDefinition,
+            setMoxaDefinition);
+        UtaPbBind(setMoxaBlock);
+        setMoxa(setMoxaBlock);
+        const long retainedInterfaceMode = UtaInt32GetValue(
+            reinterpret_cast<HUTAINT32>(UtaPbFindData(setMoxaBlock,
+                "InterfaceMode")));
+        const long setMoxaCode = UtaInt32GetValue(reinterpret_cast<HUTAINT32>(
+            UtaPbFindData(setMoxaBlock, "ErrorCode")));
+        ok &= Check(retainedInterfaceMode == 2,
+            "Moxa set action preserves InterfaceMode input");
+        ok &= Check(setMoxaCode != srcserial::ErrorInvalidParameter,
+            "Moxa set action accepts InterfaceMode 2");
+        UtaPbUnBind(setMoxaBlock);
+        UtaPbRelease(setMoxaBlock);
+        UtaPbDefRelease(setMoxaDefinition);
         FreeLibrary(dll);
         return ok;
     }

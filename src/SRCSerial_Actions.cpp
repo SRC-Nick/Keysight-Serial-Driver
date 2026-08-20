@@ -59,18 +59,21 @@ namespace
         bool includeChangeOutputs)
     {
         srcserial::SetInt32(block, "Found", mode.found ? 1 : 0);
-        srcserial::SetInt32(block, "InterfaceMode", mode.interfaceMode);
-        srcserial::SetInt32(block, "PreviousMode", mode.previousInterfaceMode);
-        srcserial::SetInt32(block, "CurrentMode", mode.interfaceMode);
         srcserial::SetInt32(block, "TxMode", mode.txMode);
         srcserial::SetString(block, "InstanceId", mode.instanceId.c_str());
         srcserial::SetString(block, "DriverVersion", mode.driverVersion.c_str());
         if (includeChangeOutputs)
         {
+            srcserial::SetInt32(block, "PreviousMode", mode.previousInterfaceMode);
+            srcserial::SetInt32(block, "CurrentMode", mode.interfaceMode);
             srcserial::SetInt32(block, "RegistryUpdated", mode.registryUpdated ? 1 : 0);
             srcserial::SetInt32(block, "RestartAttempted", mode.restartAttempted ? 1 : 0);
             srcserial::SetInt32(block, "RestartSucceeded", mode.restartSucceeded ? 1 : 0);
             srcserial::SetInt32(block, "RestartRequired", mode.restartRequired ? 1 : 0);
+        }
+        else
+        {
+            srcserial::SetInt32(block, "InterfaceMode", mode.interfaceMode);
         }
     }
 
@@ -621,18 +624,21 @@ extern "C" void UTAAPI SRCSerial_setMoxaPortMode(HUTAPB block)
 {
     srcserial::ClearStatus(block);
     srcserial::MoxaPortMode mode;
-    SetMoxaModeOutputs(block, mode, true);
     try
     {
         const std::string port = srcserial::GetString(block, "Port", "COM1");
+        const long interfaceMode = srcserial::GetInt32(block,
+            "InterfaceMode", 0);
         const std::string expected = srcserial::GetString(block,
             "ExpectedDriverVersion", "4.3.0.0");
+        const bool allowUnverifiedDriver = srcserial::GetInt32(block,
+            "AllowUnverifiedDriver", 0) != 0;
+        const bool restartDevice = srcserial::GetInt32(block,
+            "RestartDevice", 0) != 0;
+        SetMoxaModeOutputs(block, mode, true);
         const srcserial::Status status = srcserial::SetMoxaPortMode(
-            port.c_str(), srcserial::GetInt32(block, "InterfaceMode", 0),
-            expected.c_str(),
-            srcserial::GetInt32(block, "AllowUnverifiedDriver", 0) != 0,
-            srcserial::GetInt32(block, "RestartDevice", 0) != 0,
-            &mode);
+            port.c_str(), interfaceMode, expected.c_str(),
+            allowUnverifiedDriver, restartDevice, &mode);
         SetMoxaModeOutputs(block, mode, true);
         srcserial::SetStatus(block, status);
     }
