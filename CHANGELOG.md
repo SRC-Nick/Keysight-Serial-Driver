@@ -5,6 +5,9 @@
 - Fixed `SRCSerial_setMoxaPortMode` overwriting its `InterfaceMode` input with
   the output sentinel `-1` before validation, and added an exported-action UTA
   regression test for the RS-485 2-wire value.
+- Added a dedicated JLG TestExec startup routine covering stale-session
+  cleanup, Moxa identity/mode checks, guarded mode correction, COM return and
+  effective-configuration checks, worker/response readiness, and abort cleanup.
 - Added the initial Win32 TestExec serial action library.
 - Added text and binary reads/writes, queue inspection, flushing, modem-line
   access, structured errors, and optional logging.
