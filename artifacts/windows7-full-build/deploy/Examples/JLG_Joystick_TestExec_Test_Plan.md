@@ -74,6 +74,14 @@ ECM response offsets:
 The following is pseudocode. Each call must check `Success`; a failed setup call
 branches to cleanup without applying UUT power.
 
+For a reusable startup-only routine that detects and closes a stale DLL
+session, verifies or corrects the Moxa electrical mode, waits for the COM port
+to return, confirms the effective serial configuration, and installs the worker
+response before UUT power is enabled, see
+[`JLG_Startup_Routine.md`](JLG_Startup_Routine.md). That routine is the preferred
+entry point for a station testplan; the shorter steps below explain the
+protocol-worker configuration used by the rest of this example.
+
 ### 1. Open and configure the port
 
 ```text
