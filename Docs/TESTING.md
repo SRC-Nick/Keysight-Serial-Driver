@@ -77,6 +77,8 @@ only code path accessing its COM handle.
 2. Verify RX ordering, timestamps, checksum flags, resynchronization, bounded
    ring rollover, and clearing.
 3. Measure immediate-response and resettable quiet-gap response behavior.
+   Inject later RX bytes before the quiet gap and verify the stale response is
+   canceled with a `RESPONSE_CANCEL` event and no delayed physical TX.
 4. Update response bytes/checksum under sustained RX; observe only complete old
    or complete new frames.
 5. Exercise trigger skip/send limits with first-frame and steady-frame jobs.

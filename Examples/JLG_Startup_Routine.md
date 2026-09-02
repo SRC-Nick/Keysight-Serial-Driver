@@ -270,6 +270,13 @@ ROUTINE JLG_SerialStartup
         GOTO SerialStartupFailure
     END IF
 
+    IF CyclicTxCount != 0 OR ManualTxCount != 0
+        SavedErrorCode = -1001
+        SavedErrorMessage =
+            "Unexpected cyclic or manual worker traffic during JLG startup"
+        GOTO SerialStartupFailureWithSavedError
+    END IF
+
     SerialReady = 1
     LOG "JLG serial subsystem ready; UUT may now be powered"
     RETURN PASS

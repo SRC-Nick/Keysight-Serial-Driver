@@ -204,6 +204,8 @@ namespace srcserial
 
     bool WorkerBlocksCurrentThread();
     bool WorkerIsRunning();
+    bool ShouldCancelQuietGapResponse(bool pending, long responseMode,
+        LONGLONG triggerQpc, LONGLONG receiveQpc);
     Status WorkerStart(const WorkerConfig& config);
     Status WorkerStop(bool clearState);
     Status WorkerGetStatus(WorkerStatus* status, bool resetCounters);

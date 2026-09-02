@@ -377,6 +377,12 @@ namespace
         status = srcserial::WorkerQueueTx(bytes, 0, 1, &queueDepth);
         ok &= Check(!status.success && status.code == srcserial::ErrorWorkerNotRunning,
             "manual worker TX requires running worker");
+        ok &= Check(srcserial::ShouldCancelQuietGapResponse(true, 1, 100, 101),
+            "cancel stale quiet-gap response after later RX activity");
+        ok &= Check(!srcserial::ShouldCancelQuietGapResponse(true, 0, 100, 101),
+            "retain delay-only response across later RX activity");
+        ok &= Check(!srcserial::ShouldCancelQuietGapResponse(false, 1, 100, 101),
+            "ignore inactive quiet-gap response");
         std::string ports;
         DWORD portCount = 0;
         status = srcserial::EnumeratePorts(&ports, &portCount);

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Fixed quiet-gap response jobs remaining armed across later RX activity and
+  transmitting at an unrelated future gap. Later RX now cancels the stale
+  pending response; a newly completed matching frame schedules a fresh one.
+- Made `SRCSerial_workerStart` fail safely when a prior worker cannot stop,
+  instead of ignoring the shutdown failure and risking concurrent workers.
 - Fixed `SRCSerial_setMoxaPortMode` overwriting its `InterfaceMode` input with
   the output sentinel `-1` before validation, and added an exported-action UTA
   regression test for the RS-485 2-wire value.
