@@ -104,9 +104,12 @@ CALL SRCSerial_start(
 ASSERT Success == 1
 ```
 
-Use logging level 1 for production. Level 2 writes every RX/TX frame to disk and
-is intended for bounded engineering runs; the worker's in-memory event ring is
-the preferred timing-path trace.
+Use logging level 1 for production. For the unexpected 100 ms transmission or
+response-latency investigation, temporarily use `Logging=2`. Level 2 records
+raw RX/TX, parsed frames, response scheduling, selected sender type, job ID, and
+high-resolution completion latency through an asynchronous file writer. Stop
+the worker and serial session after the bounded run to flush the file. The
+capture and interpretation procedure is in the main README.
 
 ### 2. Start the fixed-frame receive worker
 

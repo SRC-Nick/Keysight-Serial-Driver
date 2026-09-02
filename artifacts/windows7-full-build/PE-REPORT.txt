@@ -11,7 +11,7 @@ File Type: DLL
 FILE HEADER VALUES
              14C machine (x86)
                5 number of sections
-        6A984969 time date stamp Wed Sep  2 11:06:01 2026
+        6A9873C7 time date stamp Wed Sep  2 14:06:47 2026
                0 file pointer to symbol table
                0 number of symbols
               E0 size of optional header
@@ -23,20 +23,20 @@ FILE HEADER VALUES
 OPTIONAL HEADER VALUES
              10B magic # (PE32)
            14.41 linker version
-           45200 size of code
-           15400 size of initialized data
+           47C00 size of code
+           16600 size of initialized data
                0 size of uninitialized data
-           26C51 entry point (10026C51) __DllMainCRTStartup@12
+           29171 entry point (10029171) __DllMainCRTStartup@12
             1000 base of code
-           47000 base of data
-        10000000 image base (10000000 to 1005DFFF)
+           49000 base of data
+        10000000 image base (10000000 to 10060FFF)
             1000 section alignment
              200 file alignment
             6.00 operating system version
             0.00 image version
             6.00 subsystem version
                0 Win32 version
-           5E000 size of image
+           61000 size of image
              400 size of headers
                0 checksum
                2 subsystem (Windows GUI)
@@ -49,19 +49,19 @@ OPTIONAL HEADER VALUES
             1000 size of heap commit
                0 loader flags
               10 number of directories
-           553C0 [     4E4] RVA [size] of Export Directory
-           558A4 [      64] RVA [size] of Import Directory
-           59000 [     1E0] RVA [size] of Resource Directory
+           582A0 [     4E4] RVA [size] of Export Directory
+           58784 [      64] RVA [size] of Import Directory
+           5C000 [     1E0] RVA [size] of Resource Directory
                0 [       0] RVA [size] of Exception Directory
                0 [       0] RVA [size] of Certificates Directory
-           5A000 [    3B54] RVA [size] of Base Relocation Directory
-           51240 [      70] RVA [size] of Debug Directory
+           5D000 [    3E7C] RVA [size] of Base Relocation Directory
+           53EE0 [      70] RVA [size] of Debug Directory
                0 [       0] RVA [size] of Architecture Directory
                0 [       0] RVA [size] of Global Pointer Directory
                0 [       0] RVA [size] of Thread Storage Directory
-           51180 [      40] RVA [size] of Load Configuration Directory
+           53E20 [      40] RVA [size] of Load Configuration Directory
                0 [       0] RVA [size] of Bound Import Directory
-           47000 [     208] RVA [size] of Import Address Table Directory
+           49000 [     208] RVA [size] of Import Address Table Directory
                0 [       0] RVA [size] of Delay Import Directory
                0 [       0] RVA [size] of COM Descriptor Directory
                0 [       0] RVA [size] of Reserved Directory
@@ -69,10 +69,10 @@ OPTIONAL HEADER VALUES
 
 SECTION HEADER #1
    .text name
-   45017 virtual size
-    1000 virtual address (10001000 to 10046016)
-   45200 size of raw data
-     400 file pointer to raw data (00000400 to 000455FF)
+   47A97 virtual size
+    1000 virtual address (10001000 to 10048A96)
+   47C00 size of raw data
+     400 file pointer to raw data (00000400 to 00047FFF)
        0 file pointer to relocation table
        0 file pointer to line numbers
        0 number of relocations
@@ -83,10 +83,10 @@ SECTION HEADER #1
 
 SECTION HEADER #2
   .rdata name
-    F4D6 virtual size
-   47000 virtual address (10047000 to 100564D5)
-    F600 size of raw data
-   45600 file pointer to raw data (00045600 to 00054BFF)
+   103B6 virtual size
+   49000 virtual address (10049000 to 100593B5)
+   10400 size of raw data
+   48000 file pointer to raw data (00048000 to 000583FF)
        0 file pointer to relocation table
        0 file pointer to line numbers
        0 number of relocations
@@ -99,10 +99,10 @@ SECTION HEADER #2
 
         Time Type        Size      RVA  Pointer
     -------- ------- -------- -------- --------
-    6A984969 cv            88 00051F24    50524    Format: RSDS, {DC45B470-521B-422E-BACC-19EDC7B1A077}, 1, C:\Users\ndapprich\OneDrive - SRC Electrical\Documents\Programming\Keysight Serial Driver\Release\SRCSerial.pdb
-    6A984969 feat          14 00051FAC    505AC    Counts: Pre-VC++ 11.00=0, C/C++=279, /GS=279, /sdl=7, guardN=271
-    6A984969 coffgrp      328 00051FC0    505C0    4C544347 (LTCG)
-    6A984969 iltcg          0 00000000        0
+    6A9873C7 cv            88 00054BFC    53BFC    Format: RSDS, {8118E90D-4826-4B04-83B5-6252A542178D}, 1, C:\Users\ndapprich\OneDrive - SRC Electrical\Documents\Programming\Keysight Serial Driver\Release\SRCSerial.pdb
+    6A9873C7 feat          14 00054C84    53C84    Counts: Pre-VC++ 11.00=0, C/C++=280, /GS=280, /sdl=7, guardN=272
+    6A9873C7 coffgrp      328 00054C98    53C98    4C544347 (LTCG)
+    6A9873C7 iltcg          0 00000000        0
 
   Section contains the following exports for SRCSerial.dll
 
@@ -115,49 +115,49 @@ SECTION HEADER #2
 
     ordinal hint RVA      name
 
-          1    0 00007370 SRCSerial_cancel = _SRCSerial_cancel@4
-          2    1 00009500 SRCSerial_cycleCreate = _SRCSerial_cycleCreate@4
-          3    2 0000A060 SRCSerial_cycleDestroy = _SRCSerial_cycleDestroy@4
-          4    3 00009AD0 SRCSerial_cycleUpdate = _SRCSerial_cycleUpdate@4
-          5    4 00006E80 SRCSerial_drainTransmit = _SRCSerial_drainTransmit@4
-          6    5 00007120 SRCSerial_enumeratePorts = _SRCSerial_enumeratePorts@4
-          7    6 00003CF0 SRCSerial_flush = _SRCSerial_flush@4
-          8    7 000023B0 SRCSerial_getBufferLength = _SRCSerial_getBufferLength@4
-          9    8 00004530 SRCSerial_getConfiguration = _SRCSerial_getConfiguration@4
-         10    9 00004880 SRCSerial_getDiagnostics = _SRCSerial_getDiagnostics@4
-         11    A 000040A0 SRCSerial_getLineStatus = _SRCSerial_getLineStatus@4
-         12    B 00007530 SRCSerial_getMoxaPortMode = _SRCSerial_getMoxaPortMode@4
-         13    C 000042D0 SRCSerial_isOpen = _SRCSerial_isOpen@4
-         14    D 00006B10 SRCSerial_pulseControlLine = _SRCSerial_pulseControlLine@4
-         15    E 00002550 SRCSerial_readBytes = _SRCSerial_readBytes@4
-         16    F 000053F0 SRCSerial_readHex = _SRCSerial_readHex@4
-         17   10 00002A60 SRCSerial_readString = _SRCSerial_readString@4
-         18   11 00004B90 SRCSerial_readUntilIdle = _SRCSerial_readUntilIdle@4
-         19   12 0000A270 SRCSerial_responseCreate = _SRCSerial_responseCreate@4
-         20   13 0000B0C0 SRCSerial_responseDestroy = _SRCSerial_responseDestroy@4
-         21   14 0000AA20 SRCSerial_responseUpdate = _SRCSerial_responseUpdate@4
-         22   15 0000BB50 SRCSerial_rxClear = _SRCSerial_rxClear@4
-         23   16 0000B2D0 SRCSerial_rxGetCount = _SRCSerial_rxGetCount@4
-         24   17 0000B4D0 SRCSerial_rxReadFrame = _SRCSerial_rxReadFrame@4
-         25   18 00003E90 SRCSerial_setControlLines = _SRCSerial_setControlLines@4
-         26   19 000079E0 SRCSerial_setMoxaPortMode = _SRCSerial_setMoxaPortMode@4
-         27   1A 000019D0 SRCSerial_start = _SRCSerial_start@4
-         28   1B 00002010 SRCSerial_stop = _SRCSerial_stop@4
-         29   1C 000058F0 SRCSerial_transact = _SRCSerial_transact@4
-         30   1D 00008790 SRCSerial_workerGetStatus = _SRCSerial_workerGetStatus@4
-         31   1E 00009120 SRCSerial_workerQueueTx = _SRCSerial_workerQueueTx@4
-         32   1F 00008D20 SRCSerial_workerReadEvents = _SRCSerial_workerReadEvents@4
-         33   20 000080B0 SRCSerial_workerStart = _SRCSerial_workerStart@4
-         34   21 00008550 SRCSerial_workerStop = _SRCSerial_workerStop@4
-         35   22 00003170 SRCSerial_writeBytes = _SRCSerial_writeBytes@4
-         36   23 000050D0 SRCSerial_writeHex = _SRCSerial_writeHex@4
-         37   24 00003710 SRCSerial_writeString = _SRCSerial_writeString@4
+          1    0 00007390 SRCSerial_cancel = _SRCSerial_cancel@4
+          2    1 00009520 SRCSerial_cycleCreate = _SRCSerial_cycleCreate@4
+          3    2 0000A080 SRCSerial_cycleDestroy = _SRCSerial_cycleDestroy@4
+          4    3 00009AF0 SRCSerial_cycleUpdate = _SRCSerial_cycleUpdate@4
+          5    4 00006EA0 SRCSerial_drainTransmit = _SRCSerial_drainTransmit@4
+          6    5 00007140 SRCSerial_enumeratePorts = _SRCSerial_enumeratePorts@4
+          7    6 00003D30 SRCSerial_flush = _SRCSerial_flush@4
+          8    7 000023F0 SRCSerial_getBufferLength = _SRCSerial_getBufferLength@4
+          9    8 00004570 SRCSerial_getConfiguration = _SRCSerial_getConfiguration@4
+         10    9 000048C0 SRCSerial_getDiagnostics = _SRCSerial_getDiagnostics@4
+         11    A 000040E0 SRCSerial_getLineStatus = _SRCSerial_getLineStatus@4
+         12    B 00007550 SRCSerial_getMoxaPortMode = _SRCSerial_getMoxaPortMode@4
+         13    C 00004310 SRCSerial_isOpen = _SRCSerial_isOpen@4
+         14    D 00006B50 SRCSerial_pulseControlLine = _SRCSerial_pulseControlLine@4
+         15    E 00002590 SRCSerial_readBytes = _SRCSerial_readBytes@4
+         16    F 00005430 SRCSerial_readHex = _SRCSerial_readHex@4
+         17   10 00002AA0 SRCSerial_readString = _SRCSerial_readString@4
+         18   11 00004BD0 SRCSerial_readUntilIdle = _SRCSerial_readUntilIdle@4
+         19   12 0000A290 SRCSerial_responseCreate = _SRCSerial_responseCreate@4
+         20   13 0000B0E0 SRCSerial_responseDestroy = _SRCSerial_responseDestroy@4
+         21   14 0000AA40 SRCSerial_responseUpdate = _SRCSerial_responseUpdate@4
+         22   15 0000BB70 SRCSerial_rxClear = _SRCSerial_rxClear@4
+         23   16 0000B2F0 SRCSerial_rxGetCount = _SRCSerial_rxGetCount@4
+         24   17 0000B4F0 SRCSerial_rxReadFrame = _SRCSerial_rxReadFrame@4
+         25   18 00003ED0 SRCSerial_setControlLines = _SRCSerial_setControlLines@4
+         26   19 00007A00 SRCSerial_setMoxaPortMode = _SRCSerial_setMoxaPortMode@4
+         27   1A 00001A20 SRCSerial_start = _SRCSerial_start@4
+         28   1B 00002060 SRCSerial_stop = _SRCSerial_stop@4
+         29   1C 00005930 SRCSerial_transact = _SRCSerial_transact@4
+         30   1D 000087B0 SRCSerial_workerGetStatus = _SRCSerial_workerGetStatus@4
+         31   1E 00009140 SRCSerial_workerQueueTx = _SRCSerial_workerQueueTx@4
+         32   1F 00008D40 SRCSerial_workerReadEvents = _SRCSerial_workerReadEvents@4
+         33   20 000080D0 SRCSerial_workerStart = _SRCSerial_workerStart@4
+         34   21 00008570 SRCSerial_workerStop = _SRCSerial_workerStop@4
+         35   22 000031B0 SRCSerial_writeBytes = _SRCSerial_writeBytes@4
+         36   23 00005110 SRCSerial_writeHex = _SRCSerial_writeHex@4
+         37   24 00003750 SRCSerial_writeString = _SRCSerial_writeString@4
 
   Section contains the following imports:
 
     utacore.dll
-              100471E8 Import Address Table
-              10055AF0 Import Name Table
+              100491E8 Import Address Table
+              100589D0 Import Name Table
                      0 time date stamp
                      0 Index of first forwarder reference
 
@@ -170,8 +170,8 @@ SECTION HEADER #2
                   2D6 _UtaI32ArrGetBuffer@4
 
     SETUPAPI.dll
-              100471C0 Import Address Table
-              10055AC8 Import Name Table
+              100491C0 Import Address Table
+              100589A8 Import Name Table
                      0 time date stamp
                      0 Index of first forwarder reference
 
@@ -186,8 +186,8 @@ SECTION HEADER #2
                   151 SetupDiGetClassDevsA
 
     KERNEL32.dll
-              10047018 Import Address Table
-              10055920 Import Name Table
+              10049018 Import Address Table
+              10058800 Import Name Table
                      0 time date stamp
                      0 Index of first forwarder reference
 
@@ -215,13 +215,17 @@ SECTION HEADER #2
                   3DD LeaveCriticalSection
                   37C InitializeCriticalSection
                   5FF WaitForSingleObject
-                  5A0 SetupComm
+                  231 GetCurrentThreadId
                   570 SetStdHandle
+                  5A4 Sleep
                   171 EscapeCommFunction
                    D2 CreateFileA
+                  538 SetEvent
+                  46E QueryPerformanceFrequency
                   1E8 GetCommState
                    94 CloseHandle
                    80 CancelIoEx
+                  104 CreateThread
                    92 ClearCommError
                   278 GetLocalTime
                   2B0 GetOverlappedResult
@@ -231,22 +235,18 @@ SECTION HEADER #2
                    C4 CreateDirectoryA
                   1BA FormatMessageA
                    CB CreateEventA
+                  46D QueryPerformanceCounter
                   503 SetCommTimeouts
                   325 GetTickCount
                   502 SetCommState
                   584 SetThreadPriority
-                  231 GetCurrentThreadId
-                  538 SetEvent
                   230 GetCurrentThread
-                  46E QueryPerformanceFrequency
-                  104 CreateThread
                   301 GetSystemTime
-                  46D QueryPerformanceCounter
                    DA CreateFileW
                   36C HeapSize
                   639 WriteConsoleW
                   532 SetEndOfFile
-                  5A4 Sleep
+                  5A0 SetupComm
                   40F MultiByteToWideChar
                   626 WideCharToMultiByte
                   37E InitializeCriticalSectionEx
@@ -287,9 +287,9 @@ SECTION HEADER #2
                   545 SetFilePointerEx
                   210 GetConsoleMode
                   491 ReadConsoleW
-                  261 GetFileSizeEx
                   1B3 FlushFileBuffers
                   214 GetConsoleOutputCP
+                  261 GetFileSizeEx
                   3D1 LCMapStringW
                   27B GetLocaleInfoW
                   3AD IsValidLocale
@@ -298,8 +298,8 @@ SECTION HEADER #2
                   36A HeapReAlloc
 
     ADVAPI32.dll
-              10047000 Import Address Table
-              10055908 Import Name Table
+              10049000 Import Address Table
+              100587E8 Import Name Table
                      0 time date stamp
                      0 Index of first forwarder reference
 
@@ -311,10 +311,10 @@ SECTION HEADER #2
 
 SECTION HEADER #3
    .data name
-    1EB0 virtual size
-   57000 virtual address (10057000 to 10058EAF)
+    1F14 virtual size
+   5A000 virtual address (1005A000 to 1005BF13)
     1200 size of raw data
-   54C00 file pointer to raw data (00054C00 to 00055DFF)
+   58400 file pointer to raw data (00058400 to 000595FF)
        0 file pointer to relocation table
        0 file pointer to line numbers
        0 number of relocations
@@ -326,9 +326,9 @@ C0000040 flags
 SECTION HEADER #4
    .rsrc name
      1E0 virtual size
-   59000 virtual address (10059000 to 100591DF)
+   5C000 virtual address (1005C000 to 1005C1DF)
      200 size of raw data
-   55E00 file pointer to raw data (00055E00 to 00055FFF)
+   59600 file pointer to raw data (00059600 to 000597FF)
        0 file pointer to relocation table
        0 file pointer to line numbers
        0 number of relocations
@@ -339,10 +339,10 @@ SECTION HEADER #4
 
 SECTION HEADER #5
   .reloc name
-    3B54 virtual size
-   5A000 virtual address (1005A000 to 1005DB53)
-    3C00 size of raw data
-   56000 file pointer to raw data (00056000 to 00059BFF)
+    3E7C virtual size
+   5D000 virtual address (1005D000 to 10060E7B)
+    4000 size of raw data
+   59800 file pointer to raw data (00059800 to 0005D7FF)
        0 file pointer to relocation table
        0 file pointer to line numbers
        0 number of relocations
@@ -355,7 +355,7 @@ SECTION HEADER #5
   Summary
 
         2000 .data
-       10000 .rdata
+       11000 .rdata
         4000 .reloc
         1000 .rsrc
-       46000 .text
+       48000 .text

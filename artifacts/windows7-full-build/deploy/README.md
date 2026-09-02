@@ -40,7 +40,8 @@ this DLL.
   atomic byte/frame updates.
 - Generic create/update/destroy cyclic TX jobs, queued manual TX, bounded raw
   RX-frame and event rings, silence detection, counters, and timestamps.
-- Four logging levels with timestamped hex/ASCII traffic and a 5 MiB limit.
+- Four logging levels with asynchronous, high-resolution worker and hex/ASCII
+  traffic tracing and a 20 MiB per-session limit.
 - Structured noninteractive errors; the DLL never displays a message box.
 
 ## Actions
@@ -180,12 +181,60 @@ It cannot help if TestExec never schedules the cancellation action.
 The `Logging` value supplied to `SRCSerial_start` is:
 
 - `0`: off.
-- `1`: configuration, errors, and transaction timeouts.
-- `2`: level 1 plus timestamped TX/RX hex and printable ASCII.
+- `1`: session/worker configuration, job create/update/destroy calls, errors,
+  cancellations, and transaction timeouts.
+- `2`: level 1 plus raw TX/RX hex and ASCII, parsed frames, response scheduling,
+  TX-source selection, and completed response/cycle/manual sends. Use level 2
+  for protocol timing investigations.
 - `3`: level 2 plus queue-depth polling details.
 
 Logs are written under `logs` beside the loaded DLL. Each process log stops
-growing at 5 MiB.
+growing at 20 MiB. On the standard tester deployment this is normally:
+
+```text
+C:\My TxSL Files\UUTs\Actions\DLLs\logs
+```
+
+Log records contain a wall-clock timestamp, monotonic `mono_us`, record `seq`,
+process/thread IDs, level, and category. Disk output is handled by a background
+logger so the worker does not synchronously flush the log file during the
+response path. `SRCSerial_stop` drains the logging queue before closing the
+file. An abnormal process termination can lose only records that were still in
+the bounded memory queue.
+
+### Capturing an unexpected worker transmission
+
+For a bounded engineering run, start the serial session with `Logging=2`, use
+the normal worker/response configuration, and perform both of these captures:
+
+1. Leave the UUT disconnected or silent for at least two seconds.
+2. Run the UUT normally for at least five seconds so its approximately 10 ms
+   request cadence and the response latency are represented.
+3. Call `SRCSerial_workerStop(ClearState=0)`, then `SRCSerial_stop()` so all
+   queued log records are flushed.
+4. Copy the newest `SRCSerial_*.log` from the directory above.
+
+The critical signatures are:
+
+| Log signature | Meaning |
+|---|---|
+| `event=CYCLE_CREATE` followed by `source=cycle` / `event=TX_CYCLE` | A `cycleCreate` action installed the periodic sender. |
+| `event=MANUAL_QUEUE` followed by `source=manual` / `event=TX_MANUAL` | `workerQueueTx` queued the frame. |
+| `event=RX_COMPLETE`, `RX_VALID`, `RESPONSE_SCHEDULE`, `source=response`, `TX_RESPONSE` | Received bytes validated and triggered the response job. |
+| `TX_RESPONSE` with `trigger_to_complete_us` | Complete DLL software response latency from parsed RX trigger through completed `WriteFile`. |
+| `event=TX_BEGIN` and `event=TX_COMPLETE duration_us=...` | Time spent submitting/completing the Windows write. |
+
+An RX-triggered response cannot appear without a preceding valid configured RX
+frame. If a `TX_RESPONSE` occurs while the UUT is believed silent, the same log
+will show the bytes Windows supplied to the DLL; that points to echo, noise, or
+another serial sender. If `TX_CYCLE` appears, the job ID and earlier
+`CYCLE_CREATE` record identify the unintended cyclic action directly.
+
+The software timestamps begin when Windows exposes received bytes to the DLL.
+Compare `trigger_to_complete_us` with the oscilloscope result: a low software
+latency but larger scope latency points toward USB/driver buffering or physical
+RS-485 turnaround, while a large software latency is inside the worker/write
+path.
 
 ## Errors and diagnostics
 

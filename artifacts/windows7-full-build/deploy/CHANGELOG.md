@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Upgraded session logging to an asynchronous high-resolution trace with
+  monotonic microsecond timestamps, sequence/thread correlation, a 20 MiB
+  limit, complete worker/job configuration, response scheduling, explicit
+  response/cycle/manual TX attribution, and write/response latency breakdowns.
+
 - Fixed quiet-gap response jobs remaining armed across later RX activity and
   transmitting at an unrelated future gap. Later RX now cancels the stale
   pending response; a newly completed matching frame schedules a fresh one.
