@@ -166,6 +166,10 @@ ASSERT AppliedHex == "74 0A 00 81"
 `QuietGapMs=1` is the starting value, not a universal limit. Compare worker
 `LastResponseLatencyUs`/`MaxResponseLatencyUs` with scope measurements and tune
 the quiet gap if the adapter releases or enables the two-wire transmitter late.
+If any later RX activity occurs before the quiet gap is satisfied, the worker
+cancels that stale pending response instead of sending it at an unrelated
+future gap. A later complete valid `6A` frame schedules a fresh response. The
+event ring records this protection as `RESPONSE_CANCEL`.
 
 ### 3B. Optional two-stage startup experiment
 
@@ -214,6 +218,8 @@ ASSERT WorkerLastErrorCode == 0
 ASSERT ValidRxFrameCount >= Station.MinimumStartupFrames
 ASSERT ResponseTxCount >= Station.MinimumStartupResponses
 ASSERT ChecksumErrorCount == 0
+ASSERT CyclicTxCount == 0
+ASSERT ManualTxCount == 0
 ASSERT LastValidRxAgeMs >= 0 AND LastValidRxAgeMs < 30
 LOG LastResponseLatencyUs, MaxResponseLatencyUs
 ```

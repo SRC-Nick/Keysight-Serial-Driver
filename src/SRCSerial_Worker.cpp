@@ -297,6 +297,20 @@ namespace srcserial
             }
         }
 
+        void CancelStaleQuietGapResponsesNoLock(LONGLONG receiveQpc)
+        {
+            for (size_t i = 0; i < g_responses.size(); ++i)
+            {
+                ResponseJob& job = g_responses[i];
+                if (!ShouldCancelQuietGapResponse(job.pending,
+                    job.responseMode, job.triggerQpc, receiveQpc))
+                    continue;
+                job.pending = false;
+                PushEventNoLock("RESPONSE_CANCEL", job.id, &job.data,
+                    "new RX activity canceled stale quiet-gap response");
+            }
+        }
+
         void ParseFramesNoLock(LONGLONG now)
         {
             const size_t frameLength = static_cast<size_t>(g_workerConfig.rxFrameLength);
@@ -481,6 +495,13 @@ namespace srcserial
                     WorkerLock lock;
                     if (!received.empty())
                     {
+                        // A quiet-gap response belongs to the RX frame that
+                        // triggered it. Later bus activity must not leave that
+                        // response armed until an unrelated future gap, where
+                        // it could collide with a new request. Parsing below
+                        // can immediately schedule a fresh response when the
+                        // new bytes complete another matching valid frame.
+                        CancelStaleQuietGapResponsesNoLock(now);
                         g_lastRxQpc = now;
                         g_silenceReported = false;
                         g_rxStream.insert(g_rxStream.end(), received.begin(), received.end());
@@ -615,6 +636,13 @@ namespace srcserial
         return g_workerRunning;
     }
 
+    bool ShouldCancelQuietGapResponse(bool pending, long responseMode,
+        LONGLONG triggerQpc, LONGLONG receiveQpc)
+    {
+        return pending && responseMode == 1 && triggerQpc > 0 &&
+            receiveQpc >= triggerQpc;
+    }
+
     Status ApplyFrameChecksum(std::vector<unsigned char>* data, long mode,
         long start, long length, long offset)
     {
@@ -655,7 +683,8 @@ namespace srcserial
         if (!status.success) return status;
         if (!open) return Status::Validation(ErrorNotOpen, "Serial port is not open");
 
-        WorkerStop(true);
+        status = WorkerStop(true);
+        if (!status.success) return status;
         WorkerLock lock;
         g_workerConfig = config;
         g_workerStatus = WorkerStatus();
