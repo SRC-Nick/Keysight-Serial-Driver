@@ -118,7 +118,7 @@ settings, and optionally purges queues. Failure leaves the driver closed.
 | 9 | `ReadTimeoutMs` | Int32 | Input | 1000 | Default read deadline. |
 | 10 | `WriteTimeoutMs` | Int32 | Input | 1000 | Default write deadline. |
 | 11 | `FlushOnOpen` | Int32 | Input | 1 | Nonzero discards RX/TX queues after setup. |
-| 12 | `Logging` | Int32 | Input | 0 | 0 off, 1 errors/config, 2 traffic, 3 verbose queues. |
+| 12 | `Logging` | Int32 | Input | 0 | 0 off; 1 configuration, worker jobs, and errors; 2 asynchronous raw traffic and worker scheduling/source trace; 3 also logs queue polling. |
 
 Example: open COM12 at 19200-8-E-1 with RTS/CTS:
 
@@ -577,7 +577,8 @@ returns the pre-reset snapshot, then resets counters and latency maxima.
 | 4 | `EventsReturned` | Int32 | Out | 0 | Records included in `EventsText`. |
 | 5 | `EventsRemaining` | Int32 | Out | 0 | Records still queued after the requested operation. |
 
-Returns oldest UTC, CR/LF-separated events: worker start/stop, valid/checksum
+Returns oldest UTC, CR/LF-separated events with an event sequence and
+high-resolution `worker_us` offset: worker start/stop, valid/checksum
 RX, response/cycle/manual TX, `RESPONSE_CANCEL` when later RX invalidates a
 stale quiet-gap response, silence, and transport errors. At capacity the oldest
 event is dropped. Every actual transmit is labeled `TX_RESPONSE`, `TX_CYCLE`,

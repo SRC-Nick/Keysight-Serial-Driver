@@ -185,7 +185,7 @@ ROUTINE JLG_SerialStartup
         ReadTimeoutMs=100,
         WriteTimeoutMs=100,
         FlushOnOpen=1,
-        Logging=1)
+        Logging=1)                // use 2 for a bounded timing/debug capture
 
     IF Success != 1
         // Win32 access denied commonly means another process owns the COM

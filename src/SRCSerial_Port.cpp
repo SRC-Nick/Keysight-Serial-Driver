@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <deque>
 #include <iomanip>
 #include <sstream>
 
@@ -24,7 +25,21 @@ namespace srcserial
         long g_breakState = 0;
         volatile LONG g_cancelRequested = 0;
         FILE* g_log = NULL;
-        const long MaxLogBytes = 5L * 1024L * 1024L;
+        CRITICAL_SECTION g_logLock;
+        bool g_logLockInitialized = false;
+        HANDLE g_logEvent = NULL;
+        HANDLE g_logThread = NULL;
+        volatile LONG g_logStopRequested = 0;
+        volatile LONG g_logSequence = 0;
+        std::deque<std::string> g_logQueue;
+        size_t g_logQueueBytes = 0;
+        DWORD g_logDroppedLines = 0;
+        bool g_logAccepting = false;
+        bool g_logLimitReported = false;
+        LARGE_INTEGER g_logQpcFrequency = { 0 };
+        LARGE_INTEGER g_logStartQpc = { 0 };
+        const long MaxLogBytes = 20L * 1024L * 1024L;
+        const size_t MaxLogQueueBytes = 8U * 1024U * 1024U;
 
         class ScopedLock
         {
@@ -36,39 +51,158 @@ namespace srcserial
             ScopedLock& operator=(const ScopedLock&);
         };
 
+        class LogLock
+        {
+        public:
+            LogLock() { if (g_logLockInitialized) EnterCriticalSection(&g_logLock); }
+            ~LogLock() { if (g_logLockInitialized) LeaveCriticalSection(&g_logLock); }
+        private:
+            LogLock(const LogLock&);
+            LogLock& operator=(const LogLock&);
+        };
+
         DWORD AddCounter(DWORD current, DWORD value)
         {
             const DWORD maximum = 0x7fffffffUL;
             return current >= maximum - (std::min)(value, maximum) ? maximum : current + value;
         }
 
-        void LogLine(long level, const char* format, ...)
+        LONGLONG LogElapsedMicroseconds()
         {
-            if (!g_log || g_config.logging < level || !format) return;
+            if (!g_logQpcFrequency.QuadPart || !g_logStartQpc.QuadPart) return -1;
+            LARGE_INTEGER now;
+            QueryPerformanceCounter(&now);
+            return ((now.QuadPart - g_logStartQpc.QuadPart) * 1000000LL) /
+                g_logQpcFrequency.QuadPart;
+        }
+
+        LONGLONG QpcDurationMicroseconds(const LARGE_INTEGER& start,
+            const LARGE_INTEGER& finish)
+        {
+            if (!g_logQpcFrequency.QuadPart) return -1;
+            return ((finish.QuadPart - start.QuadPart) * 1000000LL) /
+                g_logQpcFrequency.QuadPart;
+        }
+
+        void WriteLogText(const std::string& text)
+        {
+            if (!g_log || text.empty()) return;
             const long position = std::ftell(g_log);
             if (position >= MaxLogBytes)
             {
-                if (position == MaxLogBytes)
+                if (!g_logLimitReported)
                 {
-                    std::fprintf(g_log, "log limit reached; further entries suppressed\n");
+                    std::fprintf(g_log,
+                        "log limit reached at %ld bytes; further entries suppressed\n",
+                        MaxLogBytes);
                     std::fflush(g_log);
+                    g_logLimitReported = true;
                 }
                 return;
             }
-            SYSTEMTIME now;
-            GetLocalTime(&now);
-            std::fprintf(g_log, "%04u-%02u-%02u %02u:%02u:%02u.%03u ",
-                now.wYear, now.wMonth, now.wDay, now.wHour, now.wMinute,
-                now.wSecond, now.wMilliseconds);
-            va_list arguments;
-            va_start(arguments, format);
-            std::vfprintf(g_log, format, arguments);
-            va_end(arguments);
-            std::fputc('\n', g_log);
-            std::fflush(g_log);
+            std::fwrite(text.data(), 1, text.size(), g_log);
         }
 
-        void LogTraffic(const char* direction, const unsigned char* data, DWORD count)
+        void DrainLogQueue()
+        {
+            std::deque<std::string> pending;
+            DWORD dropped = 0;
+            {
+                LogLock lock;
+                pending.swap(g_logQueue);
+                g_logQueueBytes = 0;
+                dropped = g_logDroppedLines;
+                g_logDroppedLines = 0;
+            }
+            if (dropped)
+            {
+                char warning[160] = { 0 };
+                ::sprintf_s(warning,
+                    "LOGGER_WARNING dropped_lines=%lu reason=memory_queue_limit\n",
+                    static_cast<unsigned long>(dropped));
+                WriteLogText(warning);
+            }
+            for (std::deque<std::string>::const_iterator it = pending.begin();
+                it != pending.end(); ++it)
+                WriteLogText(*it);
+            if (g_log) std::fflush(g_log);
+        }
+
+        DWORD WINAPI LogThreadProc(LPVOID)
+        {
+            for (;;)
+            {
+                WaitForSingleObject(g_logEvent, 250);
+                DrainLogQueue();
+                if (InterlockedCompareExchange(&g_logStopRequested, 0, 0) != 0)
+                {
+                    LogLock lock;
+                    if (g_logQueue.empty()) break;
+                }
+            }
+            DrainLogQueue();
+            return 0;
+        }
+
+        void QueueLogLine(long level, const char* category, const char* body)
+        {
+            if (!body || g_config.logging < level) return;
+            SYSTEMTIME now;
+            GetLocalTime(&now);
+            char prefix[320] = { 0 };
+            const LONG sequence = InterlockedIncrement(&g_logSequence);
+            ::sprintf_s(prefix,
+                "%04u-%02u-%02u %02u:%02u:%02u.%03u mono_us=%lld seq=%ld pid=%lu tid=%lu level=%ld category=%s ",
+                now.wYear, now.wMonth, now.wDay, now.wHour, now.wMinute,
+                now.wSecond, now.wMilliseconds, LogElapsedMicroseconds(),
+                static_cast<long>(sequence), static_cast<unsigned long>(GetCurrentProcessId()),
+                static_cast<unsigned long>(GetCurrentThreadId()), level,
+                category ? category : "GENERAL");
+            std::string line(prefix);
+            line += body;
+            line += "\n";
+
+            {
+                LogLock lock;
+                if (!g_log || !g_logAccepting) return;
+                if (g_logThread)
+                {
+                    if (g_logQueueBytes + line.size() > MaxLogQueueBytes)
+                        ++g_logDroppedLines;
+                    else
+                    {
+                        g_logQueue.push_back(line);
+                        g_logQueueBytes += line.size();
+                        if (g_logEvent) SetEvent(g_logEvent);
+                    }
+                }
+                else
+                {
+                    WriteLogText(line);
+                    std::fflush(g_log);
+                }
+            }
+        }
+
+        void LogLineV(long level, const char* category, const char* format,
+            va_list arguments)
+        {
+            if (g_config.logging < level || !format) return;
+            char body[32768] = { 0 };
+            _vsnprintf_s(body, sizeof(body), _TRUNCATE, format, arguments);
+            QueueLogLine(level, category, body);
+        }
+
+        void LogLine(long level, const char* format, ...)
+        {
+            va_list arguments;
+            va_start(arguments, format);
+            LogLineV(level, "PORT", format, arguments);
+            va_end(arguments);
+        }
+
+        void LogTraffic(const char* direction, const unsigned char* data, DWORD count,
+            LONGLONG operationMicroseconds)
         {
             if (g_config.logging < 2) return;
             const std::string hex = FormatHex(data, count);
@@ -77,17 +211,44 @@ namespace srcserial
             for (DWORD i = 0; i < count; ++i)
                 ascii.push_back(data[i] >= 32 && data[i] <= 126 ?
                     static_cast<char>(data[i]) : '.');
-            LogLine(2, "%s %lu bytes  %-48s  \"%s\"", direction,
+            LogDiagnostic(2, "IO",
+                "event=%s_COMPLETE duration_us=%lld count=%lu hex=[%s] ascii=\"%s\"",
+                direction,
+                operationMicroseconds,
                 static_cast<unsigned long>(count), hex.c_str(), ascii.c_str());
         }
 
         void CloseLog()
         {
+            {
+                LogLock lock;
+                g_logAccepting = false;
+                InterlockedExchange(&g_logStopRequested, 1);
+            }
+            if (g_logEvent) SetEvent(g_logEvent);
+            if (g_logThread)
+            {
+                WaitForSingleObject(g_logThread, INFINITE);
+                CloseHandle(g_logThread);
+                g_logThread = NULL;
+            }
+            else
+                DrainLogQueue();
+            LogLock lock;
+            if (g_logEvent)
+            {
+                CloseHandle(g_logEvent);
+                g_logEvent = NULL;
+            }
             if (g_log)
             {
+                std::fflush(g_log);
                 std::fclose(g_log);
                 g_log = NULL;
             }
+            g_logQueue.clear();
+            g_logQueueBytes = 0;
+            g_logDroppedLines = 0;
         }
 
         void OpenLog()
@@ -107,6 +268,22 @@ namespace srcserial
                 directory.c_str(), now.wYear, now.wMonth, now.wDay, now.wHour,
                 now.wMinute, now.wSecond, static_cast<unsigned long>(GetCurrentProcessId()));
             fopen_s(&g_log, fileName, "a");
+            if (!g_log) return;
+            QueryPerformanceFrequency(&g_logQpcFrequency);
+            QueryPerformanceCounter(&g_logStartQpc);
+            InterlockedExchange(&g_logSequence, 0);
+            InterlockedExchange(&g_logStopRequested, 0);
+            g_logLimitReported = false;
+            g_logQueue.clear();
+            g_logQueueBytes = 0;
+            g_logDroppedLines = 0;
+            g_logEvent = CreateEventA(NULL, FALSE, FALSE, NULL);
+            if (g_logEvent)
+                g_logThread = CreateThread(NULL, 0, LogThreadProc, NULL, 0, NULL);
+            g_logAccepting = true;
+            LogDiagnostic(1, "LOGGER",
+                "event=LOG_OPEN path=\"%s\" max_bytes=%ld async=%d",
+                fileName, MaxLogBytes, g_logThread ? 1 : 0);
         }
 
         void ClosePortNoLock()
@@ -232,6 +409,9 @@ namespace srcserial
             }
             DWORD count = 0;
             bool timedOut = false;
+            LARGE_INTEGER operationStart;
+            LARGE_INTEGER operationFinish;
+            QueryPerformanceCounter(&operationStart);
             BOOL started = ReadFile(g_port, &(*output)[offset], toRead, NULL, &overlapped);
             status = Status::Ok();
             if (!started)
@@ -245,6 +425,7 @@ namespace srcserial
             else
                 status = CompleteOverlappedNoLock("ReadFile", &overlapped, 1000,
                     &count, &timedOut);
+            QueryPerformanceCounter(&operationFinish);
             CloseHandle(overlapped.hEvent);
             if (!status.success || timedOut)
             {
@@ -253,7 +434,8 @@ namespace srcserial
             }
             output->resize(offset + count);
             g_diagnostics.totalRxBytes = AddCounter(g_diagnostics.totalRxBytes, count);
-            if (count) LogTraffic("RX", &(*output)[offset], count);
+            if (count) LogTraffic("RX", &(*output)[offset], count,
+                QpcDurationMicroseconds(operationStart, operationFinish));
             return Status::Ok();
         }
 
@@ -269,6 +451,13 @@ namespace srcserial
             DWORD written = 0;
             bool timedOut = false;
             Status status = Status::Ok();
+            const std::string requestedHex = g_config.logging >= 2 ?
+                FormatHex(data, count) : std::string();
+            LogDiagnostic(2, "IO", "event=TX_BEGIN count=%lu hex=[%s]",
+                static_cast<unsigned long>(count), requestedHex.c_str());
+            LARGE_INTEGER operationStart;
+            LARGE_INTEGER operationFinish;
+            QueryPerformanceCounter(&operationStart);
             BOOL started = WriteFile(g_port, data, count, NULL, &overlapped);
             if (!started)
             {
@@ -281,10 +470,12 @@ namespace srcserial
             else
                 status = CompleteOverlappedNoLock("WriteFile", &overlapped,
                     timeoutMs, &written, &timedOut);
+            QueryPerformanceCounter(&operationFinish);
             CloseHandle(overlapped.hEvent);
             *bytesWritten = written;
             g_diagnostics.totalTxBytes = AddCounter(g_diagnostics.totalTxBytes, written);
-            if (written) LogTraffic("TX", data, written);
+            if (written) LogTraffic("TX", data, written,
+                QpcDurationMicroseconds(operationStart, operationFinish));
             if (!status.success) return status;
             if (timedOut || written != count) return PortError("WriteFile", ERROR_TIMEOUT);
             return Status::Ok();
@@ -416,6 +607,14 @@ namespace srcserial
         return result;
     }
 
+    void LogDiagnostic(long level, const char* category, const char* format, ...)
+    {
+        va_list arguments;
+        va_start(arguments, format);
+        LogLineV(level, category, format, arguments);
+        va_end(arguments);
+    }
+
     PortConfig::PortConfig()
         : port("COM1"), baudRate(9600), dataBits(8), stopBits(1), parity(0),
           flowControl(0), dtrMode(-1), rtsMode(-1), readTimeoutMs(1000),
@@ -440,6 +639,8 @@ namespace srcserial
     void Initialize(HMODULE module)
     {
         g_module = module;
+        InitializeCriticalSection(&g_logLock);
+        g_logLockInitialized = true;
         InitializeCriticalSection(&g_lock);
         g_lockInitialized = true;
     }
@@ -454,6 +655,8 @@ namespace srcserial
         }
         DeleteCriticalSection(&g_lock);
         g_lockInitialized = false;
+        DeleteCriticalSection(&g_logLock);
+        g_logLockInitialized = false;
         g_module = NULL;
     }
 
