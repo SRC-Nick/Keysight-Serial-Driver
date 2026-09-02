@@ -387,6 +387,23 @@ namespace
         DWORD portCount = 0;
         status = srcserial::EnumeratePorts(&ports, &portCount);
         ok &= Check(status.success, "enumerate present COM ports");
+        char absentPort[16] = { 0 };
+        for (long candidate = 999; candidate >= 1; --candidate)
+        {
+            char name[16] = { 0 };
+            ::sprintf_s(name, "COM%ld", candidate);
+            if (ports.find(name) == std::string::npos)
+            {
+                ::strcpy_s(absentPort, name);
+                break;
+            }
+        }
+        srcserial::PortConfig loggingConfig;
+        loggingConfig.port = absentPort[0] ? absentPort : "COM999";
+        loggingConfig.logging = 2;
+        status = srcserial::Start(loggingConfig);
+        ok &= Check(!status.success && srcserial::Stop().success,
+            "asynchronous log open, error record, drain, and close");
         srcserial::MoxaPortMode moxaMode;
         status = srcserial::GetMoxaPortMode("COM0", &moxaMode);
         ok &= Check(!status.success && status.code == srcserial::ErrorInvalidParameter,

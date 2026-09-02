@@ -69,6 +69,28 @@ msbuild SRCSerial.sln /m /p:Configuration=Release /p:Platform=Win32
 
 ## Background-worker acceptance
 
+### Diagnostic logging capture
+
+Use `Logging=2` while investigating worker timing. Level 1 proves configuration
+and which jobs were created but intentionally omits per-frame traffic. Level 2
+adds asynchronous, high-resolution records for raw RX/TX, valid frame parsing,
+response scheduling, sender selection, and completed writes.
+
+Capture at least two seconds with the UUT silent and five seconds with its
+normal traffic active. Stop the worker and session normally, then retain the
+newest `logs\SRCSerial_*.log` beside the loaded DLL. Confirm that:
+
+- Every `TX_RESPONSE` has a preceding `RX_VALID` and `RESPONSE_SCHEDULE`.
+- No `CYCLE_CREATE` or `TX_CYCLE` exists in an RX-only JLG sequence.
+- No `MANUAL_QUEUE` or `TX_MANUAL` exists unless explicitly requested.
+- `trigger_to_select_us`, `select_to_complete_us`, and
+  `trigger_to_complete_us` explain the DLL portion of the scope latency.
+- A quiet-UUT capture contains no `RX_COMPLETE` or `TX_RESPONSE`; if it does,
+  inspect the logged bytes for echo, noise, or another transmitter.
+
+The file logger is asynchronous to reduce timing perturbation. It is not proof
+of physical bus timing; correlate it with the oscilloscope.
+
 Use two endpoints and a scope or logic analyzer. The worker endpoint must be the
 only code path accessing its COM handle.
 

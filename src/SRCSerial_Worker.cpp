@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <cstring>
 #include <deque>
 #include <sstream>
 
@@ -24,7 +25,9 @@ namespace srcserial
 
         struct WorkerEvent
         {
+            DWORD sequence;
             SYSTEMTIME timestampUtc;
+            LONGLONG timestampQpc;
             std::string type;
             long jobId;
             std::vector<unsigned char> data;
@@ -85,9 +88,11 @@ namespace srcserial
             long kind;
             long jobId;
             LONGLONG triggerQpc;
+            LONGLONG selectedQpc;
             std::vector<unsigned char> data;
 
-            PendingSend() : found(false), kind(0), jobId(0), triggerQpc(0) {}
+            PendingSend() : found(false), kind(0), jobId(0), triggerQpc(0),
+                selectedQpc(0) {}
         };
 
         CRITICAL_SECTION g_workerLock;
@@ -111,6 +116,8 @@ namespace srcserial
         LONGLONG g_lastTxQpc = 0;
         bool g_silenceReported = false;
         DWORD g_sequence = 0;
+        DWORD g_eventSequence = 0;
+        LONGLONG g_workerStartQpc = 0;
 
         class WorkerLock
         {
@@ -149,6 +156,24 @@ namespace srcserial
             return static_cast<long>(value);
         }
 
+        LONGLONG QpcDeltaUs(LONGLONG start, LONGLONG finish)
+        {
+            if (!start || !finish || !g_qpcFrequency.QuadPart) return -1;
+            LONGLONG value = ((finish - start) * 1000000LL) /
+                g_qpcFrequency.QuadPart;
+            return value < 0 ? 0 : value;
+        }
+
+        long WorkerEventLogLevel(const char* type)
+        {
+            if (!type) return 2;
+            return std::strcmp(type, "WORKER_START") == 0 ||
+                std::strcmp(type, "WORKER_STOP") == 0 ||
+                std::strcmp(type, "TRANSPORT_ERROR") == 0 ||
+                std::strcmp(type, "RX_CHECKSUM") == 0 ||
+                std::strcmp(type, "RESPONSE_CANCEL") == 0 ? 1 : 2;
+        }
+
         void WakeWorker()
         {
             if (g_workerWake) SetEvent(g_workerWake);
@@ -159,7 +184,9 @@ namespace srcserial
         {
             if (g_workerConfig.eventQueueCapacity <= 0) return;
             WorkerEvent eventValue;
+            eventValue.sequence = ++g_eventSequence;
             GetSystemTime(&eventValue.timestampUtc);
+            eventValue.timestampQpc = QpcNow();
             eventValue.type = type ? type : "INFO";
             eventValue.jobId = jobId;
             if (data) eventValue.data = *data;
@@ -167,6 +194,14 @@ namespace srcserial
             while (g_events.size() >= static_cast<size_t>(g_workerConfig.eventQueueCapacity))
                 g_events.pop_front();
             g_events.push_back(eventValue);
+            const std::string hex = eventValue.data.empty() ? std::string() :
+                FormatHex(&eventValue.data[0], eventValue.data.size());
+            LogDiagnostic(WorkerEventLogLevel(type), "WORKER_EVENT",
+                "event_seq=%lu worker_us=%lld event=%s job=%ld data=[%s] message=\"%s\"",
+                static_cast<unsigned long>(eventValue.sequence),
+                QpcDeltaUs(g_workerStartQpc, eventValue.timestampQpc),
+                eventValue.type.c_str(), eventValue.jobId, hex.c_str(),
+                eventValue.message.c_str());
         }
 
         Status ValidateChecksumDefinition(size_t dataSize, long mode,
@@ -262,6 +297,8 @@ namespace srcserial
             g_lastTxQpc = 0;
             g_silenceReported = false;
             g_sequence = 0;
+            g_eventSequence = 0;
+            g_workerStartQpc = 0;
         }
 
         void StoreFrameNoLock(const std::vector<unsigned char>& data,
@@ -282,18 +319,56 @@ namespace srcserial
             LONGLONG now)
         {
             for (size_t i = 0; i < g_manual.size(); ++i)
-                if (g_manual[i].mode == 1) g_manual[i].ready = true;
+                if (g_manual[i].mode == 1 && !g_manual[i].ready)
+                {
+                    g_manual[i].ready = true;
+                    LogDiagnostic(2, "WORKER_SCHEDULE",
+                        "worker_us=%lld event=MANUAL_READY queue_index=%lu trigger=valid_rx",
+                        QpcDeltaUs(g_workerStartQpc, now),
+                        static_cast<unsigned long>(i));
+                }
             for (size_t i = 0; i < g_responses.size(); ++i)
             {
                 ResponseJob& job = g_responses[i];
                 if (!job.enabled || !Matches(job, frame)) continue;
                 job.triggerCount = AddWorkerCounter(job.triggerCount, 1);
-                if (job.triggerCount <= job.triggerSkipCount) continue;
-                if (job.sendCountLimit && job.sentCount >= job.sendCountLimit) continue;
-                if (job.pending && !job.replacePending) continue;
+                if (job.triggerCount <= job.triggerSkipCount)
+                {
+                    LogDiagnostic(2, "WORKER_SCHEDULE",
+                        "worker_us=%lld event=RESPONSE_SKIP job=%ld reason=trigger_skip trigger_count=%lu skip_count=%lu",
+                        QpcDeltaUs(g_workerStartQpc, now), job.id,
+                        static_cast<unsigned long>(job.triggerCount),
+                        static_cast<unsigned long>(job.triggerSkipCount));
+                    continue;
+                }
+                if (job.sendCountLimit && job.sentCount >= job.sendCountLimit)
+                {
+                    LogDiagnostic(2, "WORKER_SCHEDULE",
+                        "worker_us=%lld event=RESPONSE_SKIP job=%ld reason=send_limit sent_count=%lu send_limit=%lu",
+                        QpcDeltaUs(g_workerStartQpc, now), job.id,
+                        static_cast<unsigned long>(job.sentCount),
+                        static_cast<unsigned long>(job.sendCountLimit));
+                    continue;
+                }
+                if (job.pending && !job.replacePending)
+                {
+                    LogDiagnostic(2, "WORKER_SCHEDULE",
+                        "worker_us=%lld event=RESPONSE_SKIP job=%ld reason=pending_not_replaceable",
+                        QpcDeltaUs(g_workerStartQpc, now), job.id);
+                    continue;
+                }
+                const bool replaced = job.pending;
                 job.pending = true;
                 job.dueQpc = QpcAfterMs(now, job.responseDelayMs);
                 job.triggerQpc = now;
+                const std::string frameHex = FormatHex(&frame[0], frame.size());
+                LogDiagnostic(2, "WORKER_SCHEDULE",
+                    "worker_us=%lld event=RESPONSE_SCHEDULE job=%ld mode=%ld delay_ms=%lu quiet_gap_ms=%lu replaced=%d trigger_count=%lu sent_count=%lu rx=[%s]",
+                    QpcDeltaUs(g_workerStartQpc, now), job.id, job.responseMode,
+                    static_cast<unsigned long>(job.responseDelayMs),
+                    static_cast<unsigned long>(job.quietGapMs), replaced ? 1 : 0,
+                    static_cast<unsigned long>(job.triggerCount),
+                    static_cast<unsigned long>(job.sentCount), frameHex.c_str());
             }
         }
 
@@ -383,8 +458,14 @@ namespace srcserial
                 send.kind = 1;
                 send.jobId = job.id;
                 send.triggerQpc = job.triggerQpc;
+                send.selectedQpc = now;
                 send.data = job.data;
                 job.pending = false;
+                LogDiagnostic(2, "WORKER_SCHEDULE",
+                    "worker_us=%lld event=TX_SELECT source=response job=%ld mode=%ld trigger_to_select_us=%lld last_rx_age_us=%lld data=[%s]",
+                    QpcDeltaUs(g_workerStartQpc, now), job.id, job.responseMode,
+                    QpcDeltaUs(job.triggerQpc, now), QpcDeltaUs(g_lastRxQpc, now),
+                    FormatHex(&send.data[0], send.data.size()).c_str());
                 return send;
             }
 
@@ -397,7 +478,12 @@ namespace srcserial
                     continue;
                 send.found = true;
                 send.kind = 2;
+                send.selectedQpc = now;
                 send.data = it->data;
+                LogDiagnostic(2, "WORKER_SCHEDULE",
+                    "worker_us=%lld event=TX_SELECT source=manual mode=%ld data=[%s]",
+                    QpcDeltaUs(g_workerStartQpc, now), it->mode,
+                    FormatHex(&send.data[0], send.data.size()).c_str());
                 g_manual.erase(it);
                 return send;
             }
@@ -409,8 +495,14 @@ namespace srcserial
                 send.found = true;
                 send.kind = 3;
                 send.jobId = job.id;
+                send.selectedQpc = now;
                 send.data = job.data;
                 job.dueQpc = QpcAfterMs(now, job.periodMs);
+                LogDiagnostic(2, "WORKER_SCHEDULE",
+                    "worker_us=%lld event=TX_SELECT source=cycle job=%ld period_ms=%lu data=[%s]",
+                    QpcDeltaUs(g_workerStartQpc, now), job.id,
+                    static_cast<unsigned long>(job.periodMs),
+                    FormatHex(&send.data[0], send.data.size()).c_str());
                 return send;
             }
             return send;
@@ -422,6 +514,7 @@ namespace srcserial
             WorkerLock lock;
             if (result.success && bytesWritten == send.data.size())
             {
+                char details[256] = { 0 };
                 g_lastTxQpc = now;
                 g_workerStatus.txFrameCount = AddWorkerCounter(g_workerStatus.txFrameCount, 1);
                 if (send.kind == 1)
@@ -444,14 +537,29 @@ namespace srcserial
                         if (g_workerStatus.lastResponseLatencyUs > g_workerStatus.maxResponseLatencyUs)
                             g_workerStatus.maxResponseLatencyUs = g_workerStatus.lastResponseLatencyUs;
                     }
+                    ::sprintf_s(details,
+                        "trigger_to_complete_us=%ld select_to_complete_us=%lld bytes=%lu",
+                        g_workerStatus.lastResponseLatencyUs,
+                        QpcDeltaUs(send.selectedQpc, now),
+                        static_cast<unsigned long>(bytesWritten));
                 }
                 else if (send.kind == 2)
+                {
                     g_workerStatus.manualTxCount = AddWorkerCounter(g_workerStatus.manualTxCount, 1);
+                    ::sprintf_s(details, "select_to_complete_us=%lld bytes=%lu",
+                        QpcDeltaUs(send.selectedQpc, now),
+                        static_cast<unsigned long>(bytesWritten));
+                }
                 else if (send.kind == 3)
+                {
                     g_workerStatus.cyclicTxCount = AddWorkerCounter(g_workerStatus.cyclicTxCount, 1);
+                    ::sprintf_s(details, "select_to_complete_us=%lld bytes=%lu",
+                        QpcDeltaUs(send.selectedQpc, now),
+                        static_cast<unsigned long>(bytesWritten));
+                }
                 PushEventNoLock(send.kind == 1 ? "TX_RESPONSE" :
                     (send.kind == 2 ? "TX_MANUAL" : "TX_CYCLE"),
-                    send.jobId, &send.data, NULL);
+                    send.jobId, &send.data, details);
             }
             else
             {
@@ -469,7 +577,13 @@ namespace srcserial
         {
             const int priorities[] = { THREAD_PRIORITY_NORMAL,
                 THREAD_PRIORITY_ABOVE_NORMAL, THREAD_PRIORITY_HIGHEST };
-            SetThreadPriority(GetCurrentThread(), priorities[g_workerConfig.workerPriority]);
+            const BOOL prioritySet = SetThreadPriority(GetCurrentThread(),
+                priorities[g_workerConfig.workerPriority]);
+            LogDiagnostic(1, "WORKER",
+                "event=THREAD_START thread_id=%lu requested_priority=%ld set_priority_success=%d win32_error=%lu",
+                static_cast<unsigned long>(GetCurrentThreadId()),
+                g_workerConfig.workerPriority, prioritySet ? 1 : 0,
+                prioritySet ? 0UL : static_cast<unsigned long>(GetLastError()));
 
             while (InterlockedCompareExchange(&g_workerStopRequested, 0, 0) == 0)
             {
@@ -689,12 +803,22 @@ namespace srcserial
         g_workerConfig = config;
         g_workerStatus = WorkerStatus();
         ResetStateNoLock(true);
+        g_workerStartQpc = QpcNow();
         InterlockedExchange(&g_workerStopRequested, 0);
         g_workerWake = CreateEventA(NULL, FALSE, FALSE, NULL);
         if (!g_workerWake)
             return Status::Win32Error("CreateEvent(worker)", GetLastError());
         g_workerRunning = true;
         g_workerStatus.running = true;
+        LogDiagnostic(1, "WORKER",
+            "event=WORKER_CONFIG port=%s rx_frame_length=%ld rx_id_offset=%ld rx_id_value=%ld rx_id_mask=%ld rx_checksum_mode=%ld rx_checksum_start=%ld rx_checksum_length=%ld rx_checksum_offset=%ld rx_queue_capacity=%ld event_queue_capacity=%ld silence_timeout_ms=%ld poll_interval_ms=%ld minimum_inter_tx_ms=%ld worker_priority=%ld",
+            port.c_str(), config.rxFrameLength, config.rxIdOffset,
+            config.rxIdValue, config.rxIdMask, config.rxChecksumMode,
+            config.rxChecksumStart, config.rxChecksumLength,
+            config.rxChecksumOffset, config.rxQueueCapacity,
+            config.eventQueueCapacity, config.silenceTimeoutMs,
+            config.pollIntervalMs, config.minimumInterTxMs,
+            config.workerPriority);
         PushEventNoLock("WORKER_START", 0, NULL, port.c_str());
         g_workerThread = CreateThread(NULL, 0, WorkerThreadProc, NULL, 0,
             &g_workerThreadId);
@@ -730,6 +854,19 @@ namespace srcserial
                     "Protocol worker did not stop within 5000 ms");
         }
         WorkerLock lock;
+        LogDiagnostic(1, "WORKER",
+            "event=WORKER_STOP_COMPLETE clear_state=%d rx_frames=%lu valid_rx=%lu invalid_rx=%lu tx_frames=%lu response_tx=%lu cyclic_tx=%lu manual_tx=%lu active_cycles=%lu active_responses=%lu manual_queue=%lu",
+            clearState ? 1 : 0,
+            static_cast<unsigned long>(g_workerStatus.rxFrameCount),
+            static_cast<unsigned long>(g_workerStatus.validRxFrameCount),
+            static_cast<unsigned long>(g_workerStatus.invalidRxFrameCount),
+            static_cast<unsigned long>(g_workerStatus.txFrameCount),
+            static_cast<unsigned long>(g_workerStatus.responseTxCount),
+            static_cast<unsigned long>(g_workerStatus.cyclicTxCount),
+            static_cast<unsigned long>(g_workerStatus.manualTxCount),
+            static_cast<unsigned long>(g_cycles.size()),
+            static_cast<unsigned long>(g_responses.size()),
+            static_cast<unsigned long>(g_manual.size()));
         if (g_workerThread)
         {
             CloseHandle(g_workerThread);
@@ -795,7 +932,9 @@ namespace srcserial
                 eventValue.timestampUtc.wDay, eventValue.timestampUtc.wHour,
                 eventValue.timestampUtc.wMinute, eventValue.timestampUtc.wSecond,
                 eventValue.timestampUtc.wMilliseconds);
-            stream << timestamp << " " << eventValue.type;
+            stream << timestamp << " seq=" << eventValue.sequence <<
+                " worker_us=" << QpcDeltaUs(g_workerStartQpc,
+                    eventValue.timestampQpc) << " " << eventValue.type;
             if (eventValue.jobId) stream << " job=" << eventValue.jobId;
             if (!eventValue.data.empty()) stream << " " << FormatHex(
                 &eventValue.data[0], eventValue.data.size());
@@ -830,6 +969,11 @@ namespace srcserial
         job.ready = mode != 1;
         g_manual.push_back(job);
         *queueDepth = static_cast<DWORD>(g_manual.size());
+        LogDiagnostic(1, "WORKER_JOB",
+            "event=MANUAL_QUEUE mode=%ld quiet_gap_ms=%lu queue_depth=%lu data=[%s]",
+            mode, static_cast<unsigned long>(quietGapMs),
+            static_cast<unsigned long>(*queueDepth),
+            FormatHex(&data[0], data.size()).c_str());
         WakeWorker();
         return Status::Ok();
     }
@@ -869,6 +1013,12 @@ namespace srcserial
         g_cycles.push_back(job);
         *appliedHex = FormatHex(&job.data[0], job.data.size());
         *activeCount = static_cast<DWORD>(g_cycles.size());
+        LogDiagnostic(1, "WORKER_JOB",
+            "event=CYCLE_CREATE job=%ld period_ms=%lu initial_delay_ms=%lu enabled=%d checksum_mode=%ld checksum_start=%ld checksum_length=%ld checksum_offset=%ld active_cycles=%lu data=[%s]",
+            jobId, static_cast<unsigned long>(periodMs),
+            static_cast<unsigned long>(initialDelayMs), enabled ? 1 : 0,
+            checksumMode, checksumStart, checksumLength, checksumOffset,
+            static_cast<unsigned long>(*activeCount), appliedHex->c_str());
         WakeWorker();
         return Status::Ok();
     }
@@ -917,6 +1067,12 @@ namespace srcserial
         }
         *appliedHex = FormatHex(&it->data[0], it->data.size());
         *activeCount = static_cast<DWORD>(g_cycles.size());
+        LogDiagnostic(1, "WORKER_JOB",
+            "event=CYCLE_UPDATE job=%ld byte_offset=%ld byte_value=%ld requested_period_ms=%ld requested_enabled=%ld effective_period_ms=%lu effective_enabled=%d recalculate_checksum=%d active_cycles=%lu data=[%s]",
+            jobId, byteOffset, byteValue, periodMs, enabled,
+            static_cast<unsigned long>(it->periodMs), it->enabled ? 1 : 0,
+            recalculateChecksum ? 1 : 0,
+            static_cast<unsigned long>(*activeCount), appliedHex->c_str());
         WakeWorker();
         return Status::Ok();
     }
@@ -932,6 +1088,9 @@ namespace srcserial
         *found = it != g_cycles.end();
         if (*found) g_cycles.erase(it);
         *activeCount = static_cast<DWORD>(g_cycles.size());
+        LogDiagnostic(1, "WORKER_JOB",
+            "event=CYCLE_DESTROY job=%ld found=%d active_cycles=%lu",
+            jobId, *found ? 1 : 0, static_cast<unsigned long>(*activeCount));
         return Status::Ok();
     }
 
@@ -990,6 +1149,15 @@ namespace srcserial
         g_responses.push_back(job);
         *appliedHex = FormatHex(&job.data[0], job.data.size());
         *activeCount = static_cast<DWORD>(g_responses.size());
+        LogDiagnostic(1, "WORKER_JOB",
+            "event=RESPONSE_CREATE job=%ld trigger_offset=%ld trigger_value=%ld trigger_mask=%ld response_mode=%ld response_delay_ms=%lu quiet_gap_ms=%lu replace_pending=%d enabled=%d trigger_skip_count=%lu send_count_limit=%lu checksum_mode=%ld checksum_start=%ld checksum_length=%ld checksum_offset=%ld active_responses=%lu data=[%s]",
+            jobId, triggerOffset, triggerValue, triggerMask, responseMode,
+            static_cast<unsigned long>(responseDelayMs),
+            static_cast<unsigned long>(quietGapMs), replacePending ? 1 : 0,
+            enabled ? 1 : 0, static_cast<unsigned long>(triggerSkipCount),
+            static_cast<unsigned long>(sendCountLimit), checksumMode,
+            checksumStart, checksumLength, checksumOffset,
+            static_cast<unsigned long>(*activeCount), appliedHex->c_str());
         WakeWorker();
         return Status::Ok();
     }
@@ -1045,6 +1213,17 @@ namespace srcserial
         }
         *appliedHex = FormatHex(&it->data[0], it->data.size());
         *activeCount = static_cast<DWORD>(g_responses.size());
+        LogDiagnostic(1, "WORKER_JOB",
+            "event=RESPONSE_UPDATE job=%ld byte_offset=%ld byte_value=%ld requested_mode=%ld requested_delay_ms=%ld requested_quiet_gap_ms=%ld requested_replace_pending=%ld requested_enabled=%ld reset_trigger_counter=%d recalculate_checksum=%d effective_mode=%ld effective_delay_ms=%lu effective_quiet_gap_ms=%lu effective_replace_pending=%d effective_enabled=%d trigger_count=%lu sent_count=%lu active_responses=%lu data=[%s]",
+            jobId, byteOffset, byteValue, responseMode, responseDelayMs,
+            quietGapMs, replacePending, enabled, resetTriggerCounter ? 1 : 0,
+            recalculateChecksum ? 1 : 0, it->responseMode,
+            static_cast<unsigned long>(it->responseDelayMs),
+            static_cast<unsigned long>(it->quietGapMs),
+            it->replacePending ? 1 : 0, it->enabled ? 1 : 0,
+            static_cast<unsigned long>(it->triggerCount),
+            static_cast<unsigned long>(it->sentCount),
+            static_cast<unsigned long>(*activeCount), appliedHex->c_str());
         WakeWorker();
         return Status::Ok();
     }
@@ -1060,6 +1239,9 @@ namespace srcserial
         *found = it != g_responses.end();
         if (*found) g_responses.erase(it);
         *activeCount = static_cast<DWORD>(g_responses.size());
+        LogDiagnostic(1, "WORKER_JOB",
+            "event=RESPONSE_DESTROY job=%ld found=%d active_responses=%lu",
+            jobId, *found ? 1 : 0, static_cast<unsigned long>(*activeCount));
         return Status::Ok();
     }
 

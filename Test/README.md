@@ -225,6 +225,12 @@ Automated desktop checks do not replace physical validation. Before release:
 The complete procedure and acceptance criteria are in
 [`../Docs/TESTING.md`](../Docs/TESTING.md).
 
+For worker timing diagnosis, start the DLL with `Logging=2`. The log includes
+monotonic microsecond timestamps and explicit response/cycle/manual source
+records. File writes occur on a background logger thread so logging does not
+synchronously flush from the protocol worker. Hardware and an oscilloscope are
+still required to validate physical RS-485 timing.
+
 ## Troubleshooting
 
 - If `SRCSerialTools.exe` cannot start because `utacore.dll` is missing, run it

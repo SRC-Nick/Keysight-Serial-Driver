@@ -195,6 +195,7 @@ namespace srcserial
     Status DecodeEscapes(const char* text, std::vector<unsigned char>* bytes);
     Status DecodeHex(const char* text, std::vector<unsigned char>* bytes);
     std::string FormatHex(const unsigned char* data, size_t count);
+    void LogDiagnostic(long level, const char* category, const char* format, ...);
     Status EnumeratePorts(std::string* result, DWORD* count);
     Status GetMoxaPortMode(const char* port, MoxaPortMode* mode);
     Status SetMoxaPortMode(const char* port, long interfaceMode,
