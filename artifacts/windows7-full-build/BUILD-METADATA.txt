@@ -1,7 +1,7 @@
 SRCSerial Win32 build metadata
-SourceCommit=26e3894f5d4892e5ec248ae2c7783f94458687f4
+SourceCommit=ef476ecd84e7f2085b9c970c922e92c14c9be3cf
 SourceBranch=windows7-full-build
-BuildTimeUtc=2026-08-20T21:00:24Z
+BuildTimeUtc=2026-09-02T16:06:08Z
 Configuration=Release
 Platform=Win32
 PlatformToolset=v143

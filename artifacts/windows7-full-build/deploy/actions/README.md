@@ -23,11 +23,11 @@ For every action:
 
 Append these parameters to every definition:
 
-| Order | Name | UTA type | Direction | Default |
-|---:|---|---|---|---:|
-| last-2 | `Success` | `CUtaInt32` | Output | 0 |
-| last-1 | `ErrorCode` | `CUtaInt32` | Output | 0 |
-| last | `ErrorMessage` | `CUtaString` | Output | empty |
+| Order | Name | UTA type | Direction | Default | Meaning |
+|---:|---|---|---|---:|---|
+| last-2 | `Success` | `CUtaInt32` | Output | 0 | 1 when the action completed successfully; otherwise 0. |
+| last-1 | `ErrorCode` | `CUtaInt32` | Output | 0 | 0 on success, a negative project validation code, or a positive Win32 error. |
+| last | `ErrorMessage` | `CUtaString` | Output | empty | Human-readable context; empty on success. |
 
 All byte arrays are `CUtaInt32Array` with lower bound 0 and upper bound 4095
 (4096 elements). Received and transmitted values are unsigned bytes represented
@@ -141,10 +141,10 @@ normally returns Win32 error 995. It does not close the session.
 
 ### `SRCSerial_isOpen`
 
-| Order | Name | Type | Direction | Default |
-|---:|---|---|---|---|
-| 1 | `Open` | Int32 | Output | 0 |
-| 2 | `Port` | String | Output | empty |
+| Order | Name | Type | Direction | Default | Meaning |
+|---:|---|---|---|---|---|
+| 1 | `Open` | Int32 | Output | 0 | 1 when this DLL owns an open COM session. |
+| 2 | `Port` | String | Output | empty | Active normalized COM name, or empty while closed. |
 
 This query succeeds even while closed.
 
@@ -152,29 +152,29 @@ This query succeeds even while closed.
 
 All parameters are outputs:
 
-| Order | Name | Type | Default |
-|---:|---|---|---:|
-| 1 | `Open` | Int32 | 0 |
-| 2 | `Port` | String | empty |
-| 3 | `BaudRate` | Int32 | 0 |
-| 4 | `DataBits` | Int32 | 0 |
-| 5 | `StopBits` | Int32 | 0 |
-| 6 | `Parity` | Int32 | 0 |
-| 7 | `FlowControl` | Int32 | 0 |
-| 8 | `DTRMode` | Int32 | 0 |
-| 9 | `RTSMode` | Int32 | 0 |
-| 10 | `ReadTimeoutMs` | Int32 | 0 |
-| 11 | `WriteTimeoutMs` | Int32 | 0 |
-| 12 | `Logging` | Int32 | 0 |
+| Order | Name | Type | Direction | Default | Meaning |
+|---:|---|---|---|---:|---|
+| 1 | `Open` | Int32 | Output | 0 | 1 when a session is open. |
+| 2 | `Port` | String | Output | empty | Active COM name; empty while closed. |
+| 3 | `BaudRate` | Int32 | Output | 0 | Baud rate accepted by the driver. |
+| 4 | `DataBits` | Int32 | Output | 0 | Effective data bits. |
+| 5 | `StopBits` | Int32 | Output | 0 | Effective shared stop-bit enum. |
+| 6 | `Parity` | Int32 | Output | 0 | Effective shared parity enum. |
+| 7 | `FlowControl` | Int32 | Output | 0 | Effective shared flow-control enum. |
+| 8 | `DTRMode` | Int32 | Output | 0 | Effective DTR mode. |
+| 9 | `RTSMode` | Int32 | Output | 0 | Effective RTS mode. |
+| 10 | `ReadTimeoutMs` | Int32 | Output | 0 | Configured default read timeout. |
+| 11 | `WriteTimeoutMs` | Int32 | Output | 0 | Configured default write timeout. |
+| 12 | `Logging` | Int32 | Output | 0 | Active logging level, 0 through 3. |
 
 When open, values reflect the configuration accepted by the adapter driver.
 
 ### `SRCSerial_enumeratePorts`
 
-| Order | Name | Type | Direction | Default |
-|---:|---|---|---|---|
-| 1 | `Ports` | String | Output | empty |
-| 2 | `Count` | Int32 | Output | 0 |
+| Order | Name | Type | Direction | Default | Meaning |
+|---:|---|---|---|---|---|
+| 1 | `Ports` | String | Output | empty | CR/LF records containing COM name, friendly name, IDs, and location. |
+| 2 | `Count` | Int32 | Output | 0 | Number of present Ports-class COM devices returned. |
 
 Returns one CR/LF-separated record per present Windows Ports-class COM device:
 
@@ -252,21 +252,21 @@ confirming registry mapping, application behavior, and recovery.
 
 ### `SRCSerial_getBufferLength`
 
-| Order | Name | Type | Direction | Default |
-|---:|---|---|---|---:|
-| 1 | `BytesAvailable` | Int32 | Output | 0 |
+| Order | Name | Type | Direction | Default | Meaning |
+|---:|---|---|---|---:|---|
+| 1 | `BytesAvailable` | Int32 | Output | 0 | Bytes currently queued by Windows for receive; data is not consumed. |
 
 Returns the current receive-queue depth without consuming bytes.
 
 ### `SRCSerial_readBytes`
 
-| Order | Name | Type | Direction | Default |
-|---:|---|---|---|---:|
-| 1 | `RequestedCount` | Int32 | Input | 0 |
-| 2 | `TimeoutMs` | Int32 | Input | -1 |
-| 3 | `Data` | Int32 array 0..4095 | Output | zeros |
-| 4 | `BytesRead` | Int32 | Output | 0 |
-| 5 | `TimedOut` | Int32 | Output | 0 |
+| Order | Name | Type | Direction | Default | Meaning |
+|---:|---|---|---|---:|---|
+| 1 | `RequestedCount` | Int32 | Input | 0 | Positive: exact bytes to await; 0: nonblocking queue snapshot. |
+| 2 | `TimeoutMs` | Int32 | Input | -1 | Exact-count deadline; -1 uses session default. |
+| 3 | `Data` | Int32 array 0..4095 | Output | zeros | Unsigned received bytes represented as Int32 0..255. |
+| 4 | `BytesRead` | Int32 | Output | 0 | Valid elements placed in `Data`. |
+| 5 | `TimedOut` | Int32 | Output | 0 | 1 when exact-count reading ended at its deadline. |
 
 Positive `RequestedCount` waits for exactly that many bytes or the deadline.
 Zero performs a nonblocking snapshot of all currently queued bytes up to array
@@ -274,15 +274,15 @@ capacity.
 
 ### `SRCSerial_readString`
 
-| Order | Name | Type | Direction | Default |
-|---:|---|---|---|---|
-| 1 | `MaxChars` | Int32 | Input | 1024 |
-| 2 | `Terminator` | String | Input | empty |
-| 3 | `TimeoutMs` | Int32 | Input | -1 |
-| 4 | `IncludeTerminator` | Int32 | Input | 0 |
-| 5 | `Text` | String | Output | empty |
-| 6 | `BytesRead` | Int32 | Output | 0 |
-| 7 | `TimedOut` | Int32 | Output | 0 |
+| Order | Name | Type | Direction | Default | Meaning |
+|---:|---|---|---|---|---|
+| 1 | `MaxChars` | Int32 | Input | 1024 | Maximum bytes retained as narrow text. |
+| 2 | `Terminator` | String | Input | empty | Escaped terminator; empty selects idle-framed text. |
+| 3 | `TimeoutMs` | Int32 | Input | -1 | Overall deadline; -1 uses session default. |
+| 4 | `IncludeTerminator` | Int32 | Input | 0 | Nonzero retains the matched terminator in `Text`. |
+| 5 | `Text` | String | Output | empty | Received non-NUL narrow text. |
+| 6 | `BytesRead` | Int32 | Output | 0 | Total received bytes, including a consumed terminator. |
+| 7 | `TimedOut` | Int32 | Output | 0 | 1 when no complete result arrived by the deadline. |
 
 With a terminator, reads through the complete escaped sequence without consuming
 later bytes. With an empty terminator, returns the first group separated by a
@@ -292,15 +292,15 @@ truncated frame cannot be mistaken for a complete response.
 
 ### `SRCSerial_readUntilIdle`
 
-| Order | Name | Type | Direction | Default |
-|---:|---|---|---|---:|
-| 1 | `MaxBytes` | Int32 | Input | 4096 |
-| 2 | `TimeoutMs` | Int32 | Input | -1 |
-| 3 | `InterByteTimeoutMs` | Int32 | Input | 20 |
-| 4 | `Data` | Int32 array 0..4095 | Output | zeros |
-| 5 | `Hex` | String | Output | empty |
-| 6 | `BytesRead` | Int32 | Output | 0 |
-| 7 | `TimedOut` | Int32 | Output | 0 |
+| Order | Name | Type | Direction | Default | Meaning |
+|---:|---|---|---|---:|---|
+| 1 | `MaxBytes` | Int32 | Input | 4096 | Maximum frame bytes, 1..4096. |
+| 2 | `TimeoutMs` | Int32 | Input | -1 | Deadline for the first byte; -1 uses session default. |
+| 3 | `InterByteTimeoutMs` | Int32 | Input | 20 | Silence after first byte that completes the frame. |
+| 4 | `Data` | Int32 array 0..4095 | Output | zeros | Raw received bytes as Int32 0..255. |
+| 5 | `Hex` | String | Output | empty | Same bytes as uppercase space-separated hex. |
+| 6 | `BytesRead` | Int32 | Output | 0 | Valid output byte count. |
+| 7 | `TimedOut` | Int32 | Output | 0 | 1 only when no first byte arrived by the deadline. |
 
 `TimeoutMs` is the deadline for receiving the frame. After the first byte,
 `InterByteTimeoutMs` of silence completes the frame. `TimedOut=1` means no byte
@@ -308,14 +308,14 @@ arrived by the overall deadline; reaching `MaxBytes` also completes normally.
 
 ### `SRCSerial_readHex`
 
-| Order | Name | Type | Direction | Default |
-|---:|---|---|---|---:|
-| 1 | `RequestedCount` | Int32 | Input | 0 |
-| 2 | `MaxBytes` | Int32 | Input | 1024 |
-| 3 | `TimeoutMs` | Int32 | Input | -1 |
-| 4 | `Hex` | String | Output | empty |
-| 5 | `BytesRead` | Int32 | Output | 0 |
-| 6 | `TimedOut` | Int32 | Output | 0 |
+| Order | Name | Type | Direction | Default | Meaning |
+|---:|---|---|---|---:|---|
+| 1 | `RequestedCount` | Int32 | Input | 0 | Positive exact count; 0 snapshots queued bytes. |
+| 2 | `MaxBytes` | Int32 | Input | 1024 | Maximum bytes represented in `Hex`. |
+| 3 | `TimeoutMs` | Int32 | Input | -1 | Exact-count deadline; -1 uses session default. |
+| 4 | `Hex` | String | Output | empty | Uppercase space-separated received bytes. |
+| 5 | `BytesRead` | Int32 | Output | 0 | Bytes represented in `Hex`. |
+| 6 | `TimedOut` | Int32 | Output | 0 | 1 when exact-count reading timed out. |
 
 The count semantics match `readBytes`; output resembles `02 31 FF 7A`.
 
@@ -323,34 +323,34 @@ The count semantics match `readBytes`; output resembles `02 31 FF 7A`.
 
 ### `SRCSerial_writeBytes`
 
-| Order | Name | Type | Direction | Default |
-|---:|---|---|---|---:|
-| 1 | `Data` | Int32 array 0..4095 | Input | zeros |
-| 2 | `Count` | Int32 | Input | 0 |
-| 3 | `TimeoutMs` | Int32 | Input | -1 |
-| 4 | `BytesWritten` | Int32 | Output | 0 |
+| Order | Name | Type | Direction | Default | Meaning |
+|---:|---|---|---|---:|---|
+| 1 | `Data` | Int32 array 0..4095 | Input | zeros | Unsigned bytes represented as Int32 0..255. |
+| 2 | `Count` | Int32 | Input | 0 | Number of leading array elements to transmit. |
+| 3 | `TimeoutMs` | Int32 | Input | -1 | Write deadline; -1 uses session default. |
+| 4 | `BytesWritten` | Int32 | Output | 0 | Bytes accepted by the Windows write operation. |
 
 `Count` must fit the array and every used value must be `0..255`.
 
 ### `SRCSerial_writeString`
 
-| Order | Name | Type | Direction | Default |
-|---:|---|---|---|---|
-| 1 | `Text` | String | Input | empty |
-| 2 | `Suffix` | String | Input | empty |
-| 3 | `TimeoutMs` | Int32 | Input | -1 |
-| 4 | `BytesWritten` | Int32 | Output | 0 |
+| Order | Name | Type | Direction | Default | Meaning |
+|---:|---|---|---|---|---|
+| 1 | `Text` | String | Input | empty | Narrow string bytes sent without Unicode conversion. |
+| 2 | `Suffix` | String | Input | empty | Escaped bytes appended after `Text`. |
+| 3 | `TimeoutMs` | Int32 | Input | -1 | Write deadline; -1 uses session default. |
+| 4 | `BytesWritten` | Int32 | Output | 0 | Total text plus suffix bytes written. |
 
 Sends TestExec narrow string bytes without Unicode conversion, then the decoded
 suffix. Example: `Text="READ?", Suffix="\r\n"`.
 
 ### `SRCSerial_writeHex`
 
-| Order | Name | Type | Direction | Default |
-|---:|---|---|---|---|
-| 1 | `Hex` | String | Input | empty |
-| 2 | `TimeoutMs` | Int32 | Input | -1 |
-| 3 | `BytesWritten` | Int32 | Output | 0 |
+| Order | Name | Type | Direction | Default | Meaning |
+|---:|---|---|---|---|---|
+| 1 | `Hex` | String | Input | empty | Paired hexadecimal byte text to decode and send. |
+| 2 | `TimeoutMs` | Int32 | Input | -1 | Write deadline; -1 uses session default. |
+| 3 | `BytesWritten` | Int32 | Output | 0 | Decoded bytes accepted by the write. |
 
 Example: `Hex="0x02 52 44 03 0D"`.
 
@@ -405,41 +405,41 @@ ResponseMode=1, ResponseCount=8, TimeoutMs=500
 
 ### `SRCSerial_flush`
 
-| Order | Name | Type | Direction | Default |
-|---:|---|---|---|---:|
-| 1 | `FlushMask` | Int32 | Input | 3 |
+| Order | Name | Type | Direction | Default | Meaning |
+|---:|---|---|---|---:|---|
+| 1 | `FlushMask` | Int32 | Input | 3 | 1 discard RX, 2 discard TX, 3 discard both. |
 
 Mask `1` discards receive, `2` discards transmit, and `3` discards both. This
 purges bytes; it does not wait for transmit completion.
 
 ### `SRCSerial_drainTransmit`
 
-| Order | Name | Type | Direction | Default |
-|---:|---|---|---|---:|
-| 1 | `TimeoutMs` | Int32 | Input | -1 |
-| 2 | `TimedOut` | Int32 | Output | 0 |
+| Order | Name | Type | Direction | Default | Meaning |
+|---:|---|---|---|---:|---|
+| 1 | `TimeoutMs` | Int32 | Input | -1 | Maximum wait for the driver TX queue to empty. |
+| 2 | `TimedOut` | Int32 | Output | 0 | 1 if queued transmit bytes remained at the deadline. |
 
 Waits for the driver transmit queue to reach zero without discarding it.
 
 ### `SRCSerial_setControlLines`
 
-| Order | Name | Type | Direction | Default |
-|---:|---|---|---|---:|
-| 1 | `DTR` | Int32 | Input | -1 |
-| 2 | `RTS` | Int32 | Input | -1 |
-| 3 | `Break` | Int32 | Input | -1 |
+| Order | Name | Type | Direction | Default | Meaning |
+|---:|---|---|---|---:|---|
+| 1 | `DTR` | Int32 | Input | -1 | -1 unchanged, 0 clear, 1 set DTR. |
+| 2 | `RTS` | Int32 | Input | -1 | -1 unchanged, 0 clear, 1 set RTS. |
+| 3 | `Break` | Int32 | Input | -1 | -1 unchanged, 0 clear, 1 assert break. |
 
 Each value is `-1` unchanged, `0` clear, or `1` set. Manual DTR/RTS changes are
 rejected when the line is owned by handshake mode.
 
 ### `SRCSerial_pulseControlLine`
 
-| Order | Name | Type | Direction | Default |
-|---:|---|---|---|---:|
-| 1 | `Line` | Int32 | Input | 0 |
-| 2 | `State` | Int32 | Input | 0 |
-| 3 | `DurationMs` | Int32 | Input | 100 |
-| 4 | `RestoreState` | Int32 | Input | -1 |
+| Order | Name | Type | Direction | Default | Meaning |
+|---:|---|---|---|---:|---|
+| 1 | `Line` | Int32 | Input | 0 | 0 DTR, 1 RTS, 2 break. |
+| 2 | `State` | Int32 | Input | 0 | Temporary state, 0 clear or 1 set. |
+| 3 | `DurationMs` | Int32 | Input | 100 | Pulse duration, 0..60000 ms. |
+| 4 | `RestoreState` | Int32 | Input | -1 | -1 restores tracked prior state; 0/1 selects explicit restore state. |
 
 `Line` is `0` DTR, `1` RTS, or `2` break. `State` is 0/1.
 `RestoreState=-1` restores the tracked prior state; otherwise it restores the
@@ -447,12 +447,12 @@ specified 0/1 value. Maximum duration is 60000 ms.
 
 ### `SRCSerial_getLineStatus`
 
-| Order | Name | Type | Direction | Default |
-|---:|---|---|---|---:|
-| 1 | `CTS` | Int32 | Output | 0 |
-| 2 | `DSR` | Int32 | Output | 0 |
-| 3 | `DCD` | Int32 | Output | 0 |
-| 4 | `Ring` | Int32 | Output | 0 |
+| Order | Name | Type | Direction | Default | Meaning |
+|---:|---|---|---|---:|---|
+| 1 | `CTS` | Int32 | Output | 0 | 1 when Clear To Send is asserted. |
+| 2 | `DSR` | Int32 | Output | 0 | 1 when Data Set Ready is asserted. |
+| 3 | `DCD` | Int32 | Output | 0 | 1 when carrier detect is asserted. |
+| 4 | `Ring` | Int32 | Output | 0 | 1 when ring indicator is asserted. |
 
 An adapter that does not expose a signal reports it inactive.
 
@@ -460,19 +460,19 @@ An adapter that does not expose a signal reports it inactive.
 
 ### `SRCSerial_getDiagnostics`
 
-| Order | Name | Type | Direction | Default |
-|---:|---|---|---|---:|
-| 1 | `ResetAfterRead` | Int32 | Input | 0 |
-| 2 | `FrameErrors` | Int32 | Output | 0 |
-| 3 | `ParityErrors` | Int32 | Output | 0 |
-| 4 | `OverrunErrors` | Int32 | Output | 0 |
-| 5 | `BufferOverrunErrors` | Int32 | Output | 0 |
-| 6 | `BreakCount` | Int32 | Output | 0 |
-| 7 | `RxBytesQueued` | Int32 | Output | 0 |
-| 8 | `TxBytesQueued` | Int32 | Output | 0 |
-| 9 | `TotalRxBytes` | Int32 | Output | 0 |
-| 10 | `TotalTxBytes` | Int32 | Output | 0 |
-| 11 | `LastWin32Error` | Int32 | Output | 0 |
+| Order | Name | Type | Direction | Default | Meaning |
+|---:|---|---|---|---:|---|
+| 1 | `ResetAfterRead` | Int32 | Input | 0 | Nonzero clears accumulated counters after returning this snapshot. |
+| 2 | `FrameErrors` | Int32 | Output | 0 | Observed Windows `CE_FRAME` indications. |
+| 3 | `ParityErrors` | Int32 | Output | 0 | Observed Windows `CE_RXPARITY` indications. |
+| 4 | `OverrunErrors` | Int32 | Output | 0 | UART character-overrun indications. |
+| 5 | `BufferOverrunErrors` | Int32 | Output | 0 | Windows receive-buffer overrun indications. |
+| 6 | `BreakCount` | Int32 | Output | 0 | Observed receive-break indications. |
+| 7 | `RxBytesQueued` | Int32 | Output | 0 | Current driver receive queue depth. |
+| 8 | `TxBytesQueued` | Int32 | Output | 0 | Current driver transmit queue depth. |
+| 9 | `TotalRxBytes` | Int32 | Output | 0 | Bytes read successfully since session start/reset. |
+| 10 | `TotalTxBytes` | Int32 | Output | 0 | Bytes written successfully since session start/reset. |
+| 11 | `LastWin32Error` | Int32 | Output | 0 | Most recent transport-level Win32 error, or 0. |
 
 The first five counters count observations of their corresponding Win32
 communication error flags. Totals saturate at `2,147,483,647` and reset on a
@@ -524,10 +524,10 @@ mode 1/start 0/length 5/offset 5.
 
 ### `SRCSerial_workerStop`
 
-| Order | Name | Type | Dir. | Default |
-|---:|---|---|---|---:|
-| 1 | `ClearState` | Int32 | In | 0 |
-| 2 | `WorkerRunning` | Int32 | Out | 0 |
+| Order | Name | Type | Dir. | Default | Meaning |
+|---:|---|---|---|---:|---|
+| 1 | `ClearState` | Int32 | In | 0 | Nonzero also clears retained frames, events, counters, and last error. |
+| 2 | `WorkerRunning` | Int32 | Out | 0 | 0 after successful shutdown. |
 
 Stops within five seconds and destroys all jobs/pending traffic. Nonzero
 `ClearState` also clears retained frames, events, counters, and the last worker
@@ -536,31 +536,31 @@ an existing worker before their normal session operation.
 
 ### `SRCSerial_workerGetStatus`
 
-| Order | Name | Type | Dir. | Default |
-|---:|---|---|---|---:|
-| 1 | `ResetCounters` | Int32 | In | 0 |
-| 2 | `WorkerRunning` | Int32 | Out | 0 |
-| 3 | `RxFrameCount` | Int32 | Out | 0 |
-| 4 | `ValidRxFrameCount` | Int32 | Out | 0 |
-| 5 | `InvalidRxFrameCount` | Int32 | Out | 0 |
-| 6 | `ChecksumErrorCount` | Int32 | Out | 0 |
-| 7 | `BadIdCount` | Int32 | Out | 0 |
-| 8 | `DroppedByteCount` | Int32 | Out | 0 |
-| 9 | `TxFrameCount` | Int32 | Out | 0 |
-| 10 | `ResponseTxCount` | Int32 | Out | 0 |
-| 11 | `CyclicTxCount` | Int32 | Out | 0 |
-| 12 | `ManualTxCount` | Int32 | Out | 0 |
-| 13 | `RxSilenceTimeoutCount` | Int32 | Out | 0 |
-| 14 | `RxFramesQueued` | Int32 | Out | 0 |
-| 15 | `EventsQueued` | Int32 | Out | 0 |
-| 16 | `PendingTxCount` | Int32 | Out | 0 |
-| 17 | `LastRxAgeMs` | Int32 | Out | -1 |
-| 18 | `LastResponseLatencyUs` | Int32 | Out | -1 |
-| 19 | `MaxResponseLatencyUs` | Int32 | Out | 0 |
-| 20 | `LastValidRxAgeMs` | Int32 | Out | -1 |
-| 21 | `LastTxAgeMs` | Int32 | Out | -1 |
-| 22 | `WorkerLastErrorCode` | Int32 | Out | 0 |
-| 23 | `WorkerLastErrorMessage` | String | Out | empty |
+| Order | Name | Type | Dir. | Default | Meaning |
+|---:|---|---|---|---:|---|
+| 1 | `ResetCounters` | Int32 | In | 0 | Nonzero returns then clears counters and latency maxima. |
+| 2 | `WorkerRunning` | Int32 | Out | 0 | 1 while the worker thread owns COM traffic. |
+| 3 | `RxFrameCount` | Int32 | Out | 0 | Candidate fixed-length frames processed. |
+| 4 | `ValidRxFrameCount` | Int32 | Out | 0 | Frames with matching ID and valid checksum. |
+| 5 | `InvalidRxFrameCount` | Int32 | Out | 0 | Candidate frames rejected for checksum. |
+| 6 | `ChecksumErrorCount` | Int32 | Out | 0 | RX checksum failures. |
+| 7 | `BadIdCount` | Int32 | Out | 0 | Leading bytes discarded while searching for the configured ID. |
+| 8 | `DroppedByteCount` | Int32 | Out | 0 | Bytes dropped during resynchronization or stream limiting. |
+| 9 | `TxFrameCount` | Int32 | Out | 0 | All successful worker response, cyclic, and manual frames. |
+| 10 | `ResponseTxCount` | Int32 | Out | 0 | Successful RX-triggered response frames. |
+| 11 | `CyclicTxCount` | Int32 | Out | 0 | Successful periodic cyclic frames; should remain 0 for JLG. |
+| 12 | `ManualTxCount` | Int32 | Out | 0 | Successful `workerQueueTx` frames. |
+| 13 | `RxSilenceTimeoutCount` | Int32 | Out | 0 | Distinct configured receive-silence episodes. |
+| 14 | `RxFramesQueued` | Int32 | Out | 0 | Complete retained frames awaiting `rxReadFrame`. |
+| 15 | `EventsQueued` | Int32 | Out | 0 | Retained worker event records. |
+| 16 | `PendingTxCount` | Int32 | Out | 0 | Pending response plus manual TX entries; excludes cyclic jobs. |
+| 17 | `LastRxAgeMs` | Int32 | Out | -1 | Milliseconds since any received byte, or -1 before RX. |
+| 18 | `LastResponseLatencyUs` | Int32 | Out | -1 | Latest trigger-to-completed-write software latency. |
+| 19 | `MaxResponseLatencyUs` | Int32 | Out | 0 | Largest response latency since reset. |
+| 20 | `LastValidRxAgeMs` | Int32 | Out | -1 | Milliseconds since a valid configured frame, or -1. |
+| 21 | `LastTxAgeMs` | Int32 | Out | -1 | Milliseconds since successful worker TX, or -1. |
+| 22 | `WorkerLastErrorCode` | Int32 | Out | 0 | Last fatal worker transport/project error. |
+| 23 | `WorkerLastErrorMessage` | String | Out | empty | Human-readable worker error context. |
 
 Ages are -1 before the first event. Response latency is measured with
 `QueryPerformanceCounter` from trigger to completion of the Win32 write; use a
@@ -569,27 +569,29 @@ returns the pre-reset snapshot, then resets counters and latency maxima.
 
 ### `SRCSerial_workerReadEvents`
 
-| Order | Name | Type | Dir. | Default |
-|---:|---|---|---|---:|
-| 1 | `MaxEvents` | Int32 | In | 20 |
-| 2 | `ClearAfterRead` | Int32 | In | 1 |
-| 3 | `EventsText` | String | Out | empty |
-| 4 | `EventsReturned` | Int32 | Out | 0 |
-| 5 | `EventsRemaining` | Int32 | Out | 0 |
+| Order | Name | Type | Dir. | Default | Meaning |
+|---:|---|---|---|---:|---|
+| 1 | `MaxEvents` | Int32 | In | 20 | Oldest records to return, 1..1000. |
+| 2 | `ClearAfterRead` | Int32 | In | 1 | Nonzero consumes returned records; 0 peeks. |
+| 3 | `EventsText` | String | Out | empty | UTC CR/LF event lines with type, job, bytes, and message. |
+| 4 | `EventsReturned` | Int32 | Out | 0 | Records included in `EventsText`. |
+| 5 | `EventsRemaining` | Int32 | Out | 0 | Records still queued after the requested operation. |
 
 Returns oldest UTC, CR/LF-separated events: worker start/stop, valid/checksum
-RX, response/cycle/manual TX, silence, and transport errors. At capacity the
-oldest event is dropped.
+RX, response/cycle/manual TX, `RESPONSE_CANCEL` when later RX invalidates a
+stale quiet-gap response, silence, and transport errors. At capacity the oldest
+event is dropped. Every actual transmit is labeled `TX_RESPONSE`, `TX_CYCLE`,
+or `TX_MANUAL`, which is the preferred way to identify an unexpected sender.
 
 ### `SRCSerial_workerQueueTx`
 
-| Order | Name | Type | Dir. | Default |
-|---:|---|---|---|---:|
-| 1 | `Hex` | String | In | empty |
-| 2 | `Mode` | Int32 | In | 0 |
-| 3 | `QuietGapMs` | Int32 | In | 1 |
-| 4 | `Queued` | Int32 | Out | 0 |
-| 5 | `QueueDepth` | Int32 | Out | 0 |
+| Order | Name | Type | Dir. | Default | Meaning |
+|---:|---|---|---|---:|---|
+| 1 | `Hex` | String | In | empty | Raw 1..4096-byte manual frame; no checksum is generated. |
+| 2 | `Mode` | Int32 | In | 0 | 0 next opportunity, 1 after next valid RX, 2 after quiet gap. |
+| 3 | `QuietGapMs` | Int32 | In | 1 | Required RX silence for mode 2; ignored by modes 0/1. |
+| 4 | `Queued` | Int32 | Out | 0 | 1 when the frame entered the manual queue. |
+| 5 | `QueueDepth` | Int32 | Out | 0 | Manual entries queued after this call. |
 
 Mode 0 sends at the next scheduler opportunity, 1 after the next valid RX, and
 2 after the current/next quiet gap. The 32-entry queue accepts 1..4096 raw
@@ -602,36 +604,36 @@ RX and can collide on a two-wire bus; use response jobs for request/response.
 
 ### `SRCSerial_cycleCreate`
 
-| Order | Name | Type | Dir. | Default |
-|---:|---|---|---|---:|
-| 1 | `JobId` | Int32 | In | 1 |
-| 2 | `FrameHex` | String | In | empty |
-| 3 | `PeriodMs` | Int32 | In | 1000 |
-| 4 | `InitialDelayMs` | Int32 | In | 0 |
-| 5 | `Enabled` | Int32 | In | 1 |
-| 6 | `ChecksumMode` | Int32 | In | 0 |
-| 7 | `ChecksumStart` | Int32 | In | 0 |
-| 8 | `ChecksumLength` | Int32 | In | 0 |
-| 9 | `ChecksumOffset` | Int32 | In | -1 |
-| 10 | `AppliedHex` | String | Out | empty |
-| 11 | `ActiveCycles` | Int32 | Out | 0 |
+| Order | Name | Type | Dir. | Default | Meaning |
+|---:|---|---|---|---:|---|
+| 1 | `JobId` | Int32 | In | 1 | Positive identifier unique within the cyclic-job table. |
+| 2 | `FrameHex` | String | In | empty | Periodic 1..4096-byte frame. |
+| 3 | `PeriodMs` | Int32 | In | 1000 | Repeat interval, 1..86400000 ms. |
+| 4 | `InitialDelayMs` | Int32 | In | 0 | Delay from creation to first TX, 0..86400000 ms. |
+| 5 | `Enabled` | Int32 | In | 1 | Nonzero enables scheduling immediately. |
+| 6 | `ChecksumMode` | Int32 | In | 0 | 0 none, 1 one's-complement, 2 sum, 3 XOR. |
+| 7 | `ChecksumStart` | Int32 | In | 0 | First included payload byte, zero based. |
+| 8 | `ChecksumLength` | Int32 | In | 0 | Included payload byte count; positive when checksum enabled. |
+| 9 | `ChecksumOffset` | Int32 | In | -1 | Output checksum byte offset; outside payload range. |
+| 10 | `AppliedHex` | String | Out | empty | Stored frame after checksum generation. |
+| 11 | `ActiveCycles` | Int32 | Out | 0 | Cyclic jobs in the table, enabled or disabled. |
 
 Frame size is 1..4096. Period is 1..86400000 ms; initial delay is
 0..86400000 ms. `AppliedHex` contains the generated checksum.
 
 ### `SRCSerial_cycleUpdate`
 
-| Order | Name | Type | Dir. | Default |
-|---:|---|---|---|---:|
-| 1 | `JobId` | Int32 | In | 1 |
-| 2 | `FrameHex` | String | In | empty |
-| 3 | `ByteOffset` | Int32 | In | -1 |
-| 4 | `ByteValue` | Int32 | In | 0 |
-| 5 | `PeriodMs` | Int32 | In | -1 |
-| 6 | `Enabled` | Int32 | In | -1 |
-| 7 | `RecalculateChecksum` | Int32 | In | 1 |
-| 8 | `AppliedHex` | String | Out | empty |
-| 9 | `ActiveCycles` | Int32 | Out | 0 |
+| Order | Name | Type | Dir. | Default | Meaning |
+|---:|---|---|---|---:|---|
+| 1 | `JobId` | Int32 | In | 1 | Existing cyclic job to update. |
+| 2 | `FrameHex` | String | In | empty | Nonempty complete replacement; empty preserves frame. |
+| 3 | `ByteOffset` | Int32 | In | -1 | Single-byte update offset; -1 disables byte update. |
+| 4 | `ByteValue` | Int32 | In | 0 | Replacement byte 0..255 when offset is enabled. |
+| 5 | `PeriodMs` | Int32 | In | -1 | New positive period; -1 preserves current period. |
+| 6 | `Enabled` | Int32 | In | -1 | -1 unchanged, 0 disabled, 1 enabled. |
+| 7 | `RecalculateChecksum` | Int32 | In | 1 | Nonzero regenerates the create-time checksum after edits. |
+| 8 | `AppliedHex` | String | Out | empty | Complete stored frame after atomic update. |
+| 9 | `ActiveCycles` | Int32 | Out | 0 | Cyclic jobs remaining in the table. |
 
 Empty `FrameHex`, offset -1, period -1, and enabled -1 mean unchanged. A
 nonempty frame replacement occurs before the optional byte update. The complete
@@ -639,11 +641,11 @@ frame/checksum swap is atomic relative to worker scheduling.
 
 ### `SRCSerial_cycleDestroy`
 
-| Order | Name | Type | Dir. | Default |
-|---:|---|---|---|---:|
-| 1 | `JobId` | Int32 | In | 1 |
-| 2 | `Found` | Int32 | Out | 0 |
-| 3 | `ActiveCycles` | Int32 | Out | 0 |
+| Order | Name | Type | Dir. | Default | Meaning |
+|---:|---|---|---|---:|---|
+| 1 | `JobId` | Int32 | In | 1 | Cyclic job to remove. |
+| 2 | `Found` | Int32 | Out | 0 | 1 if the job existed and was removed. |
+| 3 | `ActiveCycles` | Int32 | Out | 0 | Cyclic jobs remaining. |
 
 An absent ID succeeds with `Found=0`.
 
@@ -652,32 +654,35 @@ An absent ID succeeds with `Found=0`.
 Up to 32 response IDs exist. Each matching job sends; make multiple job match
 conditions or trigger-count ranges mutually exclusive.
 
-Response mode 0 sends after `ResponseDelayMs`. Mode 1 additionally waits for
-`QuietGapMs` since the latest RX byte. `ReplacePending=1` replaces/reschedules a
-pending response on a newer valid matching frame.
+Response mode 0 sends after `ResponseDelayMs`, even if later RX activity occurs.
+Mode 1 additionally requires `QuietGapMs` of silence. For collision safety, any
+later RX activity cancels a pending mode-1 response; if those new bytes complete
+a matching valid frame, that new frame schedules a fresh response.
+`ReplacePending=1` replaces/reschedules a pending response on a newer valid
+matching frame received before it was selected for TX.
 
 ### `SRCSerial_responseCreate`
 
-| Order | Name | Type | Dir. | Default |
-|---:|---|---|---|---:|
-| 1 | `JobId` | Int32 | In | 1 |
-| 2 | `FrameHex` | String | In | empty |
-| 3 | `TriggerOffset` | Int32 | In | -1 |
-| 4 | `TriggerValue` | Int32 | In | 0 |
-| 5 | `TriggerMask` | Int32 | In | 255 |
-| 6 | `ResponseMode` | Int32 | In | 1 |
-| 7 | `ResponseDelayMs` | Int32 | In | 0 |
-| 8 | `QuietGapMs` | Int32 | In | 1 |
-| 9 | `ReplacePending` | Int32 | In | 1 |
-| 10 | `Enabled` | Int32 | In | 1 |
-| 11 | `TriggerSkipCount` | Int32 | In | 0 |
-| 12 | `SendCountLimit` | Int32 | In | 0 |
-| 13 | `ChecksumMode` | Int32 | In | 0 |
-| 14 | `ChecksumStart` | Int32 | In | 0 |
-| 15 | `ChecksumLength` | Int32 | In | 0 |
-| 16 | `ChecksumOffset` | Int32 | In | -1 |
-| 17 | `AppliedHex` | String | Out | empty |
-| 18 | `ActiveResponses` | Int32 | Out | 0 |
+| Order | Name | Type | Dir. | Default | Meaning |
+|---:|---|---|---|---:|---|
+| 1 | `JobId` | Int32 | In | 1 | Positive identifier unique within the response-job table. |
+| 2 | `FrameHex` | String | In | empty | 1..4096-byte response template. |
+| 3 | `TriggerOffset` | Int32 | In | -1 | -1 matches every valid frame; otherwise zero-based RX byte offset. |
+| 4 | `TriggerValue` | Int32 | In | 0 | Expected byte value before masking, 0..255. |
+| 5 | `TriggerMask` | Int32 | In | 255 | Bit mask applied to RX byte and trigger value; 0 matches any value. |
+| 6 | `ResponseMode` | Int32 | In | 1 | 0 delay-only; 1 collision-safe quiet-gap response. |
+| 7 | `ResponseDelayMs` | Int32 | In | 0 | Earliest delay after a matching valid frame, 0..60000 ms. |
+| 8 | `QuietGapMs` | Int32 | In | 1 | Mode-1 silence required after trigger; later RX cancels the stale response. |
+| 9 | `ReplacePending` | Int32 | In | 1 | Nonzero lets a newer matching trigger replace an existing pending response. |
+| 10 | `Enabled` | Int32 | In | 1 | Nonzero permits matching frames to schedule responses. |
+| 11 | `TriggerSkipCount` | Int32 | In | 0 | Initial matching valid frames ignored before scheduling. |
+| 12 | `SendCountLimit` | Int32 | In | 0 | Maximum successful sends; 0 is unlimited. |
+| 13 | `ChecksumMode` | Int32 | In | 0 | 0 none, 1 one's-complement, 2 sum, 3 XOR. |
+| 14 | `ChecksumStart` | Int32 | In | 0 | First response payload byte included in checksum. |
+| 15 | `ChecksumLength` | Int32 | In | 0 | Included response payload byte count. |
+| 16 | `ChecksumOffset` | Int32 | In | -1 | Generated checksum byte offset; outside payload range. |
+| 17 | `AppliedHex` | String | Out | empty | Stored response after checksum generation. |
+| 18 | `ActiveResponses` | Int32 | Out | 0 | Response jobs in the table, enabled or disabled. |
 
 `TriggerOffset=-1` matches every valid configured RX frame. Otherwise the
 masked RX byte must match the masked value. `TriggerSkipCount` ignores initial
@@ -686,21 +691,21 @@ with skip 0/limit 1 and another with skip 1/limit 0.
 
 ### `SRCSerial_responseUpdate`
 
-| Order | Name | Type | Dir. | Default |
-|---:|---|---|---|---:|
-| 1 | `JobId` | Int32 | In | 1 |
-| 2 | `FrameHex` | String | In | empty |
-| 3 | `ByteOffset` | Int32 | In | -1 |
-| 4 | `ByteValue` | Int32 | In | 0 |
-| 5 | `ResponseMode` | Int32 | In | -1 |
-| 6 | `ResponseDelayMs` | Int32 | In | -1 |
-| 7 | `QuietGapMs` | Int32 | In | -1 |
-| 8 | `ReplacePending` | Int32 | In | -1 |
-| 9 | `Enabled` | Int32 | In | -1 |
-| 10 | `ResetTriggerCounter` | Int32 | In | 0 |
-| 11 | `RecalculateChecksum` | Int32 | In | 1 |
-| 12 | `AppliedHex` | String | Out | empty |
-| 13 | `ActiveResponses` | Int32 | Out | 0 |
+| Order | Name | Type | Dir. | Default | Meaning |
+|---:|---|---|---|---:|---|
+| 1 | `JobId` | Int32 | In | 1 | Existing response job to update. |
+| 2 | `FrameHex` | String | In | empty | Nonempty complete replacement; empty preserves frame. |
+| 3 | `ByteOffset` | Int32 | In | -1 | Single-byte update offset; -1 disables byte update. |
+| 4 | `ByteValue` | Int32 | In | 0 | Replacement byte 0..255 when offset is enabled. |
+| 5 | `ResponseMode` | Int32 | In | -1 | -1 unchanged, 0 delay-only, 1 quiet-gap. |
+| 6 | `ResponseDelayMs` | Int32 | In | -1 | -1 unchanged; otherwise new 0..60000 ms delay. |
+| 7 | `QuietGapMs` | Int32 | In | -1 | -1 unchanged; otherwise new mode-1 silence requirement. |
+| 8 | `ReplacePending` | Int32 | In | -1 | -1 unchanged, 0 retain pending, 1 replace on newer match. |
+| 9 | `Enabled` | Int32 | In | -1 | -1 unchanged, 0 disable/cancel pending, 1 enable. |
+| 10 | `ResetTriggerCounter` | Int32 | In | 0 | Nonzero resets skip/send counters and cancels pending TX. |
+| 11 | `RecalculateChecksum` | Int32 | In | 1 | Nonzero regenerates create-time checksum after frame edits. |
+| 12 | `AppliedHex` | String | Out | empty | Complete stored response after atomic update. |
+| 13 | `ActiveResponses` | Int32 | Out | 0 | Response jobs remaining in the table. |
 
 Empty/-1 values mean unchanged. Disabling cancels pending TX. Resetting the
 trigger counter restarts skip/limit sequencing and cancels pending TX. Frame and
@@ -708,11 +713,11 @@ single-byte updates are atomic and can regenerate the create-time checksum.
 
 ### `SRCSerial_responseDestroy`
 
-| Order | Name | Type | Dir. | Default |
-|---:|---|---|---|---:|
-| 1 | `JobId` | Int32 | In | 1 |
-| 2 | `Found` | Int32 | Out | 0 |
-| 3 | `ActiveResponses` | Int32 | Out | 0 |
+| Order | Name | Type | Dir. | Default | Meaning |
+|---:|---|---|---|---:|---|
+| 1 | `JobId` | Int32 | In | 1 | Response job to remove. |
+| 2 | `Found` | Int32 | Out | 0 | 1 if the job existed and was removed. |
+| 3 | `ActiveResponses` | Int32 | Out | 0 | Response jobs remaining. |
 
 ## Worker RX queue
 
@@ -722,40 +727,40 @@ dropped. At capacity, the oldest frame is discarded.
 
 ### `SRCSerial_rxGetCount`
 
-| Order | Name | Type | Dir. | Default |
-|---:|---|---|---|---:|
-| 1 | `FramesAvailable` | Int32 | Out | 0 |
-| 2 | `EventsAvailable` | Int32 | Out | 0 |
-| 3 | `StreamBytes` | Int32 | Out | 0 |
+| Order | Name | Type | Dir. | Default | Meaning |
+|---:|---|---|---|---:|---|
+| 1 | `FramesAvailable` | Int32 | Out | 0 | Complete retained frames available to read. |
+| 2 | `EventsAvailable` | Int32 | Out | 0 | Worker events available to read. |
+| 3 | `StreamBytes` | Int32 | Out | 0 | Incomplete bytes currently held by frame reassembly. |
 
 `StreamBytes` is the incomplete reassembly depth.
 
 ### `SRCSerial_rxReadFrame`
 
-| Order | Name | Type | Dir. | Default |
-|---:|---|---|---|---:|
-| 1 | `Remove` | Int32 | In | 1 |
-| 2 | `Data` | Int32 array 0..4095 | Out | zeros |
-| 3 | `Found` | Int32 | Out | 0 |
-| 4 | `BytesRead` | Int32 | Out | 0 |
-| 5 | `Hex` | String | Out | empty |
-| 6 | `Sequence` | Int32 | Out | 0 |
-| 7 | `TimestampUtc` | String | Out | empty |
-| 8 | `AgeMs` | Int32 | Out | -1 |
-| 9 | `ChecksumValid` | Int32 | Out | 0 |
-| 10 | `FramesRemaining` | Int32 | Out | 0 |
+| Order | Name | Type | Dir. | Default | Meaning |
+|---:|---|---|---|---:|---|
+| 1 | `Remove` | Int32 | In | 1 | 0 peeks oldest frame; nonzero consumes it. |
+| 2 | `Data` | Int32 array 0..4095 | Out | zeros | Raw frame bytes as Int32 0..255. |
+| 3 | `Found` | Int32 | Out | 0 | 1 when a frame was available. |
+| 4 | `BytesRead` | Int32 | Out | 0 | Valid elements in `Data`. |
+| 5 | `Hex` | String | Out | empty | Same frame as uppercase space-separated hex. |
+| 6 | `Sequence` | Int32 | Out | 0 | Monotonic retained-frame sequence number. |
+| 7 | `TimestampUtc` | String | Out | empty | UTC timestamp captured when parsed. |
+| 8 | `AgeMs` | Int32 | Out | -1 | Software age from parse timestamp to read. |
+| 9 | `ChecksumValid` | Int32 | Out | 0 | 1 when configured RX checksum validated. |
+| 10 | `FramesRemaining` | Int32 | Out | 0 | Complete frames queued after peek/consume. |
 
 Returns the oldest frame. `Remove=0` peeks; `Remove=1` consumes. An empty queue
 is successful with `Found=0`.
 
 ### `SRCSerial_rxClear`
 
-| Order | Name | Type | Dir. | Default |
-|---:|---|---|---|---:|
-| 1 | `ClearFrames` | Int32 | In | 1 |
-| 2 | `ClearEvents` | Int32 | In | 1 |
-| 3 | `ClearCounters` | Int32 | In | 0 |
-| 4 | `Cleared` | Int32 | Out | 0 |
+| Order | Name | Type | Dir. | Default | Meaning |
+|---:|---|---|---|---:|---|
+| 1 | `ClearFrames` | Int32 | In | 1 | Nonzero clears complete frames and incomplete stream bytes. |
+| 2 | `ClearEvents` | Int32 | In | 1 | Nonzero clears the worker event ring. |
+| 3 | `ClearCounters` | Int32 | In | 0 | Nonzero clears counters and latency maxima. |
+| 4 | `Cleared` | Int32 | Out | 0 | 1 after the requested clear operation succeeds. |
 
 Clearing frames also discards incomplete reassembly bytes. This action does not
 destroy jobs or stop the worker.

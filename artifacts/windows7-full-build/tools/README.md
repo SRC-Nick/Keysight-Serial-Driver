@@ -104,6 +104,8 @@ Currently covers:
 - Cancellation while closed.
 - Worker-start rejection without an open port and worker-TX rejection while
   stopped.
+- Quiet-gap response cancellation after later RX activity, while delay-only
+  responses retain their explicitly requested behavior.
 - Present COM-port enumeration.
 - Idempotent stop.
 

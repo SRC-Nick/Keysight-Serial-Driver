@@ -11,7 +11,7 @@ File Type: DLL
 FILE HEADER VALUES
              14C machine (x86)
                5 number of sections
-        6A875C0F time date stamp Thu Aug 20 14:57:03 2026
+        6A984969 time date stamp Wed Sep  2 11:06:01 2026
                0 file pointer to symbol table
                0 number of symbols
               E0 size of optional header
@@ -23,20 +23,20 @@ FILE HEADER VALUES
 OPTIONAL HEADER VALUES
              10B magic # (PE32)
            14.41 linker version
-           45000 size of code
+           45200 size of code
            15400 size of initialized data
                0 size of uninitialized data
-           26B32 entry point (10026B32) __DllMainCRTStartup@12
+           26C51 entry point (10026C51) __DllMainCRTStartup@12
             1000 base of code
-           46000 base of data
-        10000000 image base (10000000 to 1005CFFF)
+           47000 base of data
+        10000000 image base (10000000 to 1005DFFF)
             1000 section alignment
              200 file alignment
             6.00 operating system version
             0.00 image version
             6.00 subsystem version
                0 Win32 version
-           5D000 size of image
+           5E000 size of image
              400 size of headers
                0 checksum
                2 subsystem (Windows GUI)
@@ -49,19 +49,19 @@ OPTIONAL HEADER VALUES
             1000 size of heap commit
                0 loader flags
               10 number of directories
-           54380 [     4E4] RVA [size] of Export Directory
-           54864 [      64] RVA [size] of Import Directory
-           58000 [     1E0] RVA [size] of Resource Directory
+           553C0 [     4E4] RVA [size] of Export Directory
+           558A4 [      64] RVA [size] of Import Directory
+           59000 [     1E0] RVA [size] of Resource Directory
                0 [       0] RVA [size] of Exception Directory
                0 [       0] RVA [size] of Certificates Directory
-           59000 [    3B38] RVA [size] of Base Relocation Directory
-           50200 [      70] RVA [size] of Debug Directory
+           5A000 [    3B54] RVA [size] of Base Relocation Directory
+           51240 [      70] RVA [size] of Debug Directory
                0 [       0] RVA [size] of Architecture Directory
                0 [       0] RVA [size] of Global Pointer Directory
                0 [       0] RVA [size] of Thread Storage Directory
-           50140 [      40] RVA [size] of Load Configuration Directory
+           51180 [      40] RVA [size] of Load Configuration Directory
                0 [       0] RVA [size] of Bound Import Directory
-           46000 [     208] RVA [size] of Import Address Table Directory
+           47000 [     208] RVA [size] of Import Address Table Directory
                0 [       0] RVA [size] of Delay Import Directory
                0 [       0] RVA [size] of COM Descriptor Directory
                0 [       0] RVA [size] of Reserved Directory
@@ -69,10 +69,10 @@ OPTIONAL HEADER VALUES
 
 SECTION HEADER #1
    .text name
-   44EF7 virtual size
-    1000 virtual address (10001000 to 10045EF6)
-   45000 size of raw data
-     400 file pointer to raw data (00000400 to 000453FF)
+   45017 virtual size
+    1000 virtual address (10001000 to 10046016)
+   45200 size of raw data
+     400 file pointer to raw data (00000400 to 000455FF)
        0 file pointer to relocation table
        0 file pointer to line numbers
        0 number of relocations
@@ -83,10 +83,10 @@ SECTION HEADER #1
 
 SECTION HEADER #2
   .rdata name
-    F496 virtual size
-   46000 virtual address (10046000 to 10055495)
+    F4D6 virtual size
+   47000 virtual address (10047000 to 100564D5)
     F600 size of raw data
-   45400 file pointer to raw data (00045400 to 000549FF)
+   45600 file pointer to raw data (00045600 to 00054BFF)
        0 file pointer to relocation table
        0 file pointer to line numbers
        0 number of relocations
@@ -99,10 +99,10 @@ SECTION HEADER #2
 
         Time Type        Size      RVA  Pointer
     -------- ------- -------- -------- --------
-    6A875C0F cv            88 00050EE4    502E4    Format: RSDS, {36003EC5-9F13-40D4-8A4F-15C753DE30C8}, 1, C:\Users\ndapprich\OneDrive - SRC Electrical\Documents\Programming\Keysight Serial Driver\Release\SRCSerial.pdb
-    6A875C0F feat          14 00050F6C    5036C    Counts: Pre-VC++ 11.00=0, C/C++=279, /GS=279, /sdl=7, guardN=271
-    6A875C0F coffgrp      328 00050F80    50380    4C544347 (LTCG)
-    6A875C0F iltcg          0 00000000        0
+    6A984969 cv            88 00051F24    50524    Format: RSDS, {DC45B470-521B-422E-BACC-19EDC7B1A077}, 1, C:\Users\ndapprich\OneDrive - SRC Electrical\Documents\Programming\Keysight Serial Driver\Release\SRCSerial.pdb
+    6A984969 feat          14 00051FAC    505AC    Counts: Pre-VC++ 11.00=0, C/C++=279, /GS=279, /sdl=7, guardN=271
+    6A984969 coffgrp      328 00051FC0    505C0    4C544347 (LTCG)
+    6A984969 iltcg          0 00000000        0
 
   Section contains the following exports for SRCSerial.dll
 
@@ -156,8 +156,8 @@ SECTION HEADER #2
   Section contains the following imports:
 
     utacore.dll
-              100461E8 Import Address Table
-              10054AB0 Import Name Table
+              100471E8 Import Address Table
+              10055AF0 Import Name Table
                      0 time date stamp
                      0 Index of first forwarder reference
 
@@ -170,8 +170,8 @@ SECTION HEADER #2
                   2D6 _UtaI32ArrGetBuffer@4
 
     SETUPAPI.dll
-              100461C0 Import Address Table
-              10054A88 Import Name Table
+              100471C0 Import Address Table
+              10055AC8 Import Name Table
                      0 time date stamp
                      0 Index of first forwarder reference
 
@@ -186,8 +186,8 @@ SECTION HEADER #2
                   151 SetupDiGetClassDevsA
 
     KERNEL32.dll
-              10046018 Import Address Table
-              100548E0 Import Name Table
+              10047018 Import Address Table
+              10055920 Import Name Table
                      0 time date stamp
                      0 Index of first forwarder reference
 
@@ -298,8 +298,8 @@ SECTION HEADER #2
                   36A HeapReAlloc
 
     ADVAPI32.dll
-              10046000 Import Address Table
-              100548C8 Import Name Table
+              10047000 Import Address Table
+              10055908 Import Name Table
                      0 time date stamp
                      0 Index of first forwarder reference
 
@@ -312,9 +312,9 @@ SECTION HEADER #2
 SECTION HEADER #3
    .data name
     1EB0 virtual size
-   56000 virtual address (10056000 to 10057EAF)
+   57000 virtual address (10057000 to 10058EAF)
     1200 size of raw data
-   54A00 file pointer to raw data (00054A00 to 00055BFF)
+   54C00 file pointer to raw data (00054C00 to 00055DFF)
        0 file pointer to relocation table
        0 file pointer to line numbers
        0 number of relocations
@@ -326,9 +326,9 @@ C0000040 flags
 SECTION HEADER #4
    .rsrc name
      1E0 virtual size
-   58000 virtual address (10058000 to 100581DF)
+   59000 virtual address (10059000 to 100591DF)
      200 size of raw data
-   55C00 file pointer to raw data (00055C00 to 00055DFF)
+   55E00 file pointer to raw data (00055E00 to 00055FFF)
        0 file pointer to relocation table
        0 file pointer to line numbers
        0 number of relocations
@@ -339,10 +339,10 @@ SECTION HEADER #4
 
 SECTION HEADER #5
   .reloc name
-    3B38 virtual size
-   59000 virtual address (10059000 to 1005CB37)
+    3B54 virtual size
+   5A000 virtual address (1005A000 to 1005DB53)
     3C00 size of raw data
-   55E00 file pointer to raw data (00055E00 to 000599FF)
+   56000 file pointer to raw data (00056000 to 00059BFF)
        0 file pointer to relocation table
        0 file pointer to line numbers
        0 number of relocations
@@ -358,4 +358,4 @@ SECTION HEADER #5
        10000 .rdata
         4000 .reloc
         1000 .rsrc
-       45000 .text
+       46000 .text
