@@ -514,7 +514,7 @@ Requires an open session and resets earlier jobs, queues, counters, and timing.
 | 9 | `RxQueueCapacity` | Int32 | In | 256 | Frame ring size, 1..4096. |
 | 10 | `EventQueueCapacity` | Int32 | In | 512 | Event ring size, 1..8192. |
 | 11 | `SilenceTimeoutMs` | Int32 | In | 1000 | 0 disables silence episodes. |
-| 12 | `PollIntervalMs` | Int32 | In | 1 | Scheduler poll, 1..50 ms. |
+| 12 | `PollIntervalMs` | Int32 | In | 1 | Maximum fallback scheduler wait, 1..50 ms. Incoming serial activity wakes the worker immediately through `WaitCommEvent`; this value is no longer the RX polling cadence. |
 | 13 | `MinimumInterTxMs` | Int32 | In | 0 | TX guard, 0..60000 ms. |
 | 14 | `WorkerPriority` | Int32 | In | 1 | 0 normal, 1 above normal, 2 highest. |
 | 15 | `WorkerRunning` | Int32 | Out | 0 | 1 after thread creation. |

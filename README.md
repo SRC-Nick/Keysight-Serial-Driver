@@ -188,6 +188,12 @@ The `Logging` value supplied to `SRCSerial_start` is:
   for protocol timing investigations.
 - `3`: level 2 plus queue-depth polling details.
 
+The background protocol worker uses overlapped `WaitCommEvent` receive
+notification. `PollIntervalMs` is only a fallback scheduler timeout; arriving
+serial bytes wake the worker without waiting for the Windows timer tick. This
+prevents a partially received fixed-length frame from being delayed by the
+coarse timer resolution commonly seen on Windows 7.
+
 Logs are written under `logs` beside the loaded DLL. Each process log stops
 growing at 20 MiB. On the standard tester deployment this is normally:
 

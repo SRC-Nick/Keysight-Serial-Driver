@@ -891,6 +891,91 @@ namespace srcserial
         return status;
     }
 
+    Status WaitForReceiveActivity(HANDLE wakeEvent, DWORD timeoutMs,
+        bool* receiveReady, bool* externallyWoken)
+    {
+        if (!receiveReady || !externallyWoken)
+            return Status::Validation(ErrorInvalidParameter,
+                "Receive-wait outputs are required");
+        *receiveReady = false;
+        *externallyWoken = false;
+
+        ScopedLock lock;
+        if (g_port == INVALID_HANDLE_VALUE)
+            return Status::Validation(ErrorNotOpen, "Serial port is not open");
+
+        if (!SetCommMask(g_port, EV_RXCHAR | EV_ERR))
+            return PortError("SetCommMask", GetLastError());
+
+        OVERLAPPED overlapped = { 0 };
+        overlapped.hEvent = CreateEventA(NULL, TRUE, FALSE, NULL);
+        if (!overlapped.hEvent)
+            return PortError("CreateEvent(receive wait)", GetLastError());
+
+        DWORD eventMask = 0;
+        BOOL completed = WaitCommEvent(g_port, &eventMask, &overlapped);
+        if (!completed)
+        {
+            const DWORD error = GetLastError();
+            if (error != ERROR_IO_PENDING)
+            {
+                CloseHandle(overlapped.hEvent);
+                return PortError("WaitCommEvent", error);
+            }
+
+            HANDLE handles[2] = { overlapped.hEvent, wakeEvent };
+            const DWORD handleCount = wakeEvent ? 2UL : 1UL;
+            const DWORD wait = WaitForMultipleObjects(handleCount, handles,
+                FALSE, timeoutMs);
+            if (wait == WAIT_OBJECT_0)
+            {
+                DWORD transferred = 0;
+                if (!GetOverlappedResult(g_port, &overlapped, &transferred,
+                    FALSE))
+                {
+                    const DWORD resultError = GetLastError();
+                    CloseHandle(overlapped.hEvent);
+                    return PortError("WaitCommEvent", resultError);
+                }
+            }
+            else if (wakeEvent && wait == WAIT_OBJECT_0 + 1)
+            {
+                *externallyWoken = true;
+                CancelIoEx(g_port, &overlapped);
+                WaitForSingleObject(overlapped.hEvent, INFINITE);
+                DWORD ignored = 0;
+                GetOverlappedResult(g_port, &overlapped, &ignored, FALSE);
+                eventMask = 0;
+            }
+            else if (wait == WAIT_TIMEOUT)
+            {
+                CancelIoEx(g_port, &overlapped);
+                WaitForSingleObject(overlapped.hEvent, INFINITE);
+                DWORD ignored = 0;
+                GetOverlappedResult(g_port, &overlapped, &ignored, FALSE);
+                eventMask = 0;
+            }
+            else
+            {
+                const DWORD waitError = GetLastError();
+                CancelIoEx(g_port, &overlapped);
+                WaitForSingleObject(overlapped.hEvent, INFINITE);
+                CloseHandle(overlapped.hEvent);
+                return PortError("WaitForMultipleObjects(receive wait)",
+                    waitError);
+            }
+        }
+
+        CloseHandle(overlapped.hEvent);
+        *receiveReady = (eventMask & (EV_RXCHAR | EV_ERR)) != 0;
+        LogDiagnostic(3, "WORKER_WAIT",
+            "event=SERIAL_WAKE mask=0x%08lX receive_ready=%d external_wake=%d timeout_ms=%lu",
+            static_cast<unsigned long>(eventMask), *receiveReady ? 1 : 0,
+            *externallyWoken ? 1 : 0,
+            static_cast<unsigned long>(timeoutMs));
+        return Status::Ok();
+    }
+
     Status ReadBytes(DWORD requestedCount, DWORD timeoutMs, DWORD capacity,
         std::vector<unsigned char>* data, bool* timedOut)
     {

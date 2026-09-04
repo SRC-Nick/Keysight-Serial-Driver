@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Replaced the protocol worker's timer-only receive polling with overlapped
+  `WaitCommEvent` notification. This prevents Windows 7 timer quantization from
+  delaying the remainder of a partially received frame by roughly 10-16 ms and
+  walking immediate responses into the following RX window.
 - Upgraded session logging to an asynchronous high-resolution trace with
   monotonic microsecond timestamps, sequence/thread correlation, a 20 MiB
   limit, complete worker/job configuration, response scheduling, explicit

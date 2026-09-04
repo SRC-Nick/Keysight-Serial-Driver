@@ -361,6 +361,13 @@ namespace
         status = srcserial::DrainTransmit(10, &timedOut);
         ok &= Check(!status.success && status.code == srcserial::ErrorNotOpen,
             "drain requires open session");
+        bool receiveReady = true;
+        bool externallyWoken = true;
+        status = srcserial::WaitForReceiveActivity(NULL, 0, &receiveReady,
+            &externallyWoken);
+        ok &= Check(!status.success && status.code == srcserial::ErrorNotOpen &&
+            !receiveReady && !externallyWoken,
+            "receive event wait requires open session");
         ok &= Check(srcserial::CancelPending().success, "cancel is safe while closed");
         srcserial::WorkerConfig workerConfig;
         workerConfig.rxFrameLength = 6;

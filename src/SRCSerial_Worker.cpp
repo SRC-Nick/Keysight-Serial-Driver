@@ -642,8 +642,32 @@ namespace srcserial
                     RecordSendResult(send, writeStatus, written, QpcNow());
                 }
                 else
-                    WaitForSingleObject(g_workerWake,
-                        static_cast<DWORD>(g_workerConfig.pollIntervalMs));
+                {
+                    // A millisecond WaitForSingleObject timeout is rounded to
+                    // the system timer resolution on Windows 7 (commonly about
+                    // 10-16 ms). At low baud rates that can split one frame
+                    // across two worker polls and move the response through the
+                    // next RX window. WaitCommEvent wakes on serial-driver RX
+                    // activity instead, while g_workerWake still interrupts the
+                    // wait for job changes and worker shutdown.
+                    bool receiveReady = false;
+                    bool externallyWoken = false;
+                    const Status waitStatus = WaitForReceiveActivity(g_workerWake,
+                        static_cast<DWORD>(g_workerConfig.pollIntervalMs),
+                        &receiveReady, &externallyWoken);
+                    if (!waitStatus.success)
+                    {
+                        if (InterlockedCompareExchange(&g_workerStopRequested,
+                            0, 0) != 0)
+                            break;
+                        WorkerLock lock;
+                        g_workerStatus.lastErrorCode = waitStatus.code;
+                        g_workerStatus.lastErrorMessage = waitStatus.message;
+                        PushEventNoLock("TRANSPORT_ERROR", 0, NULL,
+                            waitStatus.message.c_str());
+                        InterlockedExchange(&g_workerStopRequested, 1);
+                    }
+                }
             }
 
             {
