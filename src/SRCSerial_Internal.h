@@ -180,6 +180,8 @@ namespace srcserial
     Status GetConfiguration(PortConfig* config, bool* open);
     Status GetDiagnostics(Diagnostics* diagnostics, bool resetAfterRead);
     Status GetBufferLength(DWORD* bytesAvailable);
+    Status WaitForReceiveActivity(HANDLE wakeEvent, DWORD timeoutMs,
+        bool* receiveReady, bool* externallyWoken);
     Status ReadBytes(DWORD requestedCount, DWORD timeoutMs, DWORD capacity, std::vector<unsigned char>* data, bool* timedOut);
     Status ReadString(DWORD maxChars, const std::vector<unsigned char>& terminator, DWORD timeoutMs, bool includeTerminator, std::string* text, DWORD* bytesRead, bool* timedOut);
     Status ReadUntilIdle(DWORD maximum, DWORD overallTimeoutMs, DWORD interByteTimeoutMs, std::vector<unsigned char>* data, bool* timedOut);

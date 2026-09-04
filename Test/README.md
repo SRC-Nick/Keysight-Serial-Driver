@@ -104,6 +104,7 @@ Currently covers:
 - Cancellation while closed.
 - Worker-start rejection without an open port and worker-TX rejection while
   stopped.
+- Receive-event wait rejection without an open port.
 - Quiet-gap response cancellation after later RX activity, while delay-only
   responses retain their explicitly requested behavior.
 - Present COM-port enumeration.
@@ -230,6 +231,12 @@ monotonic microsecond timestamps and explicit response/cycle/manual source
 records. File writes occur on a background logger thread so logging does not
 synchronously flush from the protocol worker. Hardware and an oscilloscope are
 still required to validate physical RS-485 timing.
+
+The protocol worker waits on the Win32 serial receive event rather than using
+`PollIntervalMs` as its normal RX cadence. This matters on Windows 7, where a
+nominal one-millisecond timer wait can be rounded to roughly 10-16 ms. The
+configured interval remains a fallback scheduler wake-up for deadlines,
+silence reporting, and non-RX work.
 
 ## Troubleshooting
 
