@@ -171,7 +171,8 @@ namespace srcserial
                 std::strcmp(type, "WORKER_STOP") == 0 ||
                 std::strcmp(type, "TRANSPORT_ERROR") == 0 ||
                 std::strcmp(type, "RX_CHECKSUM") == 0 ||
-                std::strcmp(type, "RESPONSE_CANCEL") == 0 ? 1 : 2;
+                std::strcmp(type, "RESPONSE_CANCEL") == 0 ||
+                std::strcmp(type, "RESPONSE_SUPPRESSED_BACKLOG") == 0 ? 1 : 2;
         }
 
         void WakeWorker()
@@ -271,6 +272,7 @@ namespace srcserial
             g_workerStatus.droppedByteCount = 0;
             g_workerStatus.txFrameCount = 0;
             g_workerStatus.responseTxCount = 0;
+            g_workerStatus.responseSuppressedCount = 0;
             g_workerStatus.cyclicTxCount = 0;
             g_workerStatus.manualTxCount = 0;
             g_workerStatus.rxSilenceTimeoutCount = 0;
@@ -386,8 +388,9 @@ namespace srcserial
             }
         }
 
-        void ParseFramesNoLock(LONGLONG now)
+        DWORD ParseFramesNoLock(LONGLONG now)
         {
+            DWORD validFramesParsed = 0;
             const size_t frameLength = static_cast<size_t>(g_workerConfig.rxFrameLength);
             const size_t idOffset = static_cast<size_t>(g_workerConfig.rxIdOffset);
             while (g_rxStream.size() >= frameLength)
@@ -409,6 +412,7 @@ namespace srcserial
                 StoreFrameNoLock(frame, valid, now);
                 if (valid)
                 {
+                    validFramesParsed = AddWorkerCounter(validFramesParsed, 1);
                     g_workerStatus.validRxFrameCount = AddWorkerCounter(
                         g_workerStatus.validRxFrameCount, 1);
                     g_lastValidRxQpc = now;
@@ -434,6 +438,32 @@ namespace srcserial
                 g_rxStream.erase(g_rxStream.begin());
                 g_workerStatus.droppedByteCount = AddWorkerCounter(
                     g_workerStatus.droppedByteCount, 1);
+            }
+            return validFramesParsed;
+        }
+
+        void SuppressBacklogResponsesNoLock(LONGLONG triggerQpc,
+            size_t receivedBytes, DWORD validFramesParsed,
+            size_t residualBytes)
+        {
+            for (size_t i = 0; i < g_responses.size(); ++i)
+            {
+                ResponseJob& job = g_responses[i];
+                // Only suppress responses scheduled by this receive pass. A
+                // previously delayed response with ReplacePending=0 retains
+                // its explicitly requested behavior.
+                if (!job.pending || job.triggerQpc != triggerQpc) continue;
+                job.pending = false;
+                g_workerStatus.responseSuppressedCount = AddWorkerCounter(
+                    g_workerStatus.responseSuppressedCount, 1);
+                char details[256] = { 0 };
+                ::sprintf_s(details,
+                    "unsafe RX backlog: received_bytes=%lu valid_frames=%lu residual_bytes=%lu",
+                    static_cast<unsigned long>(receivedBytes),
+                    static_cast<unsigned long>(validFramesParsed),
+                    static_cast<unsigned long>(residualBytes));
+                PushEventNoLock("RESPONSE_SUPPRESSED_BACKLOG", job.id,
+                    &job.data, details);
             }
         }
 
@@ -619,7 +649,13 @@ namespace srcserial
                         g_lastRxQpc = now;
                         g_silenceReported = false;
                         g_rxStream.insert(g_rxStream.end(), received.begin(), received.end());
-                        ParseFramesNoLock(now);
+                        const DWORD validFramesParsed = ParseFramesNoLock(now);
+                        const size_t frameLength = static_cast<size_t>(
+                            g_workerConfig.rxFrameLength);
+                        if (ShouldSuppressBacklogResponse(received.size(),
+                            frameLength, validFramesParsed, g_rxStream.size()))
+                            SuppressBacklogResponsesNoLock(now, received.size(),
+                                validFramesParsed, g_rxStream.size());
                     }
                     if (g_workerConfig.silenceTimeoutMs > 0 && g_lastRxQpc &&
                         !g_silenceReported &&
@@ -720,7 +756,8 @@ namespace srcserial
         : running(false), rxFrameCount(0), validRxFrameCount(0),
           invalidRxFrameCount(0), checksumErrorCount(0), badIdCount(0),
           droppedByteCount(0), txFrameCount(0), responseTxCount(0),
-          cyclicTxCount(0), manualTxCount(0), rxSilenceTimeoutCount(0),
+          responseSuppressedCount(0), cyclicTxCount(0), manualTxCount(0),
+          rxSilenceTimeoutCount(0),
           rxFramesQueued(0), eventsQueued(0), pendingTxCount(0),
           lastResponseLatencyUs(-1), maxResponseLatencyUs(0),
           lastRxAgeMs(-1), lastValidRxAgeMs(-1), lastTxAgeMs(-1),
@@ -779,6 +816,14 @@ namespace srcserial
     {
         return pending && responseMode == 1 && triggerQpc > 0 &&
             receiveQpc >= triggerQpc;
+    }
+
+    bool ShouldSuppressBacklogResponse(size_t receivedBytes,
+        size_t frameLength, DWORD validFramesParsed, size_t residualBytes)
+    {
+        if (frameLength == 0 || validFramesParsed == 0) return false;
+        return receivedBytes > frameLength || validFramesParsed > 1 ||
+            residualBytes > 0;
     }
 
     Status ApplyFrameChecksum(std::vector<unsigned char>* data, long mode,
@@ -879,13 +924,14 @@ namespace srcserial
         }
         WorkerLock lock;
         LogDiagnostic(1, "WORKER",
-            "event=WORKER_STOP_COMPLETE clear_state=%d rx_frames=%lu valid_rx=%lu invalid_rx=%lu tx_frames=%lu response_tx=%lu cyclic_tx=%lu manual_tx=%lu active_cycles=%lu active_responses=%lu manual_queue=%lu",
+            "event=WORKER_STOP_COMPLETE clear_state=%d rx_frames=%lu valid_rx=%lu invalid_rx=%lu tx_frames=%lu response_tx=%lu response_suppressed=%lu cyclic_tx=%lu manual_tx=%lu active_cycles=%lu active_responses=%lu manual_queue=%lu",
             clearState ? 1 : 0,
             static_cast<unsigned long>(g_workerStatus.rxFrameCount),
             static_cast<unsigned long>(g_workerStatus.validRxFrameCount),
             static_cast<unsigned long>(g_workerStatus.invalidRxFrameCount),
             static_cast<unsigned long>(g_workerStatus.txFrameCount),
             static_cast<unsigned long>(g_workerStatus.responseTxCount),
+            static_cast<unsigned long>(g_workerStatus.responseSuppressedCount),
             static_cast<unsigned long>(g_workerStatus.cyclicTxCount),
             static_cast<unsigned long>(g_workerStatus.manualTxCount),
             static_cast<unsigned long>(g_cycles.size()),
