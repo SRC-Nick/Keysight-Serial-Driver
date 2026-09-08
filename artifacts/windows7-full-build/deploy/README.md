@@ -139,7 +139,7 @@ SRCSerial_workerStart(RxFrameLength=6, RxIdOffset=0, RxIdValue=0x6A,
                       RxChecksumStart=0, RxChecksumLength=5,
                       RxChecksumOffset=5, PollIntervalMs=1)
 SRCSerial_responseCreate(JobId=1, FrameHex="74 0A 00 00",
-                         ResponseMode=1, QuietGapMs=1,
+                         ResponseMode=0, ResponseDelayMs=0, QuietGapMs=0,
                          ChecksumMode=1, ChecksumStart=0,
                          ChecksumLength=3, ChecksumOffset=3)
 // Power and exercise the UUT; poll status/read buffered frames at normal step speed.
@@ -152,6 +152,12 @@ Mode 1 also waits until receive traffic has been quiet for `QuietGapMs`; a new
 valid frame replaces and reschedules a pending response when
 `ReplacePending=1`. `TriggerSkipCount` and `SendCountLimit` can express a
 first-message/steady-message sequence using two generic response jobs.
+
+Before sending a triggered response, the worker suppresses it if a receive
+backlog indicates that its safe response slot has already passed. Oversized RX
+batches, multiple valid frames parsed in one pass, or residual bytes from the
+next frame produce a `RESPONSE_SUPPRESSED_BACKLOG` event and increment
+`ResponseSuppressedCount`. The next clean live frame can trigger normally.
 
 While the worker runs, normal foreground reads, writes, transactions, queue
 purges, and control-line changes return -1012. Use the worker RX/event/status

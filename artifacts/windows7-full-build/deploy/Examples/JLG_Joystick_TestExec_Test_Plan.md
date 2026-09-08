@@ -150,9 +150,9 @@ CALL SRCSerial_responseCreate(
     TriggerOffset=-1,          // every valid configured RX frame
     TriggerValue=0,
     TriggerMask=255,
-    ResponseMode=1,            // quiet-gap mode
+    ResponseMode=0,            // immediate after complete valid frame
     ResponseDelayMs=0,
-    QuietGapMs=1,
+    QuietGapMs=0,
     ReplacePending=1,
     Enabled=1,
     TriggerSkipCount=0,
@@ -166,13 +166,12 @@ ASSERT Success == 1
 ASSERT AppliedHex == "74 0A 00 81"
 ```
 
-`QuietGapMs=1` is the starting value, not a universal limit. Compare worker
-`LastResponseLatencyUs`/`MaxResponseLatencyUs` with scope measurements and tune
-the quiet gap if the adapter releases or enables the two-wire transmitter late.
-If any later RX activity occurs before the quiet gap is satisfied, the worker
-cancels that stale pending response instead of sending it at an unrelated
-future gap. A later complete valid `6A` frame schedules a fresh response. The
-event ring records this protection as `RESPONSE_CANCEL`.
+Hardware captures on the Windows 7/Moxa station selected mode 0 with zero delay:
+normal physical replies remained in the required 1-2 ms region. Mode 1 with a
+one-millisecond quiet gap produced variable multi-millisecond delays and late
+collisions, so it is not the JLG baseline. The worker's backlog guard suppresses
+an immediate response if accumulated or next-frame bytes show that its safe
+slot has already passed; the next clean `6A` frame can trigger normally.
 
 ### 3B. Optional two-stage startup experiment
 
@@ -184,7 +183,7 @@ first-frame/steady-frame sequence without hardcoding JLG behavior in the DLL:
 CALL SRCSerial_responseCreate(
     JobId=101, FrameHex="74 00 00 00",
     TriggerOffset=-1, TriggerValue=0, TriggerMask=255,
-    ResponseMode=1, ResponseDelayMs=0, QuietGapMs=1,
+    ResponseMode=0, ResponseDelayMs=0, QuietGapMs=0,
     ReplacePending=1, Enabled=1,
     TriggerSkipCount=0, SendCountLimit=1,
     ChecksumMode=1, ChecksumStart=0, ChecksumLength=3, ChecksumOffset=3)
@@ -195,7 +194,7 @@ ASSERT AppliedHex == "74 00 00 8B"
 CALL SRCSerial_responseCreate(
     JobId=102, FrameHex="74 0A 00 00",
     TriggerOffset=-1, TriggerValue=0, TriggerMask=255,
-    ResponseMode=1, ResponseDelayMs=0, QuietGapMs=1,
+    ResponseMode=0, ResponseDelayMs=0, QuietGapMs=0,
     ReplacePending=1, Enabled=1,
     TriggerSkipCount=1, SendCountLimit=0,
     ChecksumMode=1, ChecksumStart=0, ChecksumLength=3, ChecksumOffset=3)
@@ -224,7 +223,7 @@ ASSERT ChecksumErrorCount == 0
 ASSERT CyclicTxCount == 0
 ASSERT ManualTxCount == 0
 ASSERT LastValidRxAgeMs >= 0 AND LastValidRxAgeMs < 30
-LOG LastResponseLatencyUs, MaxResponseLatencyUs
+LOG ResponseSuppressedCount, LastResponseLatencyUs, MaxResponseLatencyUs
 ```
 
 Do not lock `MinimumStartupFrames`, the exact wait, or a response-latency limit
@@ -329,6 +328,7 @@ capture events and scope evidence, then power-cycle. Do not attempt to treat
 ```text
 CALL SRCSerial_workerGetStatus(ResetCounters=0)
 LOG all worker counters and latency outputs
+LOG ResponseSuppressedCount             // nonzero identifies protected late-response slots
 
 DO
     CALL SRCSerial_workerReadEvents(MaxEvents=100, ClearAfterRead=1)

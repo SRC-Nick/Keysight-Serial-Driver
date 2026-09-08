@@ -548,19 +548,20 @@ an existing worker before their normal session operation.
 | 8 | `DroppedByteCount` | Int32 | Out | 0 | Bytes dropped during resynchronization or stream limiting. |
 | 9 | `TxFrameCount` | Int32 | Out | 0 | All successful worker response, cyclic, and manual frames. |
 | 10 | `ResponseTxCount` | Int32 | Out | 0 | Successful RX-triggered response frames. |
-| 11 | `CyclicTxCount` | Int32 | Out | 0 | Successful periodic cyclic frames; should remain 0 for JLG. |
-| 12 | `ManualTxCount` | Int32 | Out | 0 | Successful `workerQueueTx` frames. |
-| 13 | `RxSilenceTimeoutCount` | Int32 | Out | 0 | Distinct configured receive-silence episodes. |
-| 14 | `RxFramesQueued` | Int32 | Out | 0 | Complete retained frames awaiting `rxReadFrame`. |
-| 15 | `EventsQueued` | Int32 | Out | 0 | Retained worker event records. |
-| 16 | `PendingTxCount` | Int32 | Out | 0 | Pending response plus manual TX entries; excludes cyclic jobs. |
-| 17 | `LastRxAgeMs` | Int32 | Out | -1 | Milliseconds since any received byte, or -1 before RX. |
-| 18 | `LastResponseLatencyUs` | Int32 | Out | -1 | Latest trigger-to-completed-write software latency. |
-| 19 | `MaxResponseLatencyUs` | Int32 | Out | 0 | Largest response latency since reset. |
-| 20 | `LastValidRxAgeMs` | Int32 | Out | -1 | Milliseconds since a valid configured frame, or -1. |
-| 21 | `LastTxAgeMs` | Int32 | Out | -1 | Milliseconds since successful worker TX, or -1. |
-| 22 | `WorkerLastErrorCode` | Int32 | Out | 0 | Last fatal worker transport/project error. |
-| 23 | `WorkerLastErrorMessage` | String | Out | empty | Human-readable worker error context. |
+| 11 | `ResponseSuppressedCount` | Int32 | Out | 0 | Matching responses intentionally withheld because accumulated or next-frame RX bytes made a late transmission unsafe. |
+| 12 | `CyclicTxCount` | Int32 | Out | 0 | Successful periodic cyclic frames; should remain 0 for JLG. |
+| 13 | `ManualTxCount` | Int32 | Out | 0 | Successful `workerQueueTx` frames. |
+| 14 | `RxSilenceTimeoutCount` | Int32 | Out | 0 | Distinct configured receive-silence episodes. |
+| 15 | `RxFramesQueued` | Int32 | Out | 0 | Complete retained frames awaiting `rxReadFrame`. |
+| 16 | `EventsQueued` | Int32 | Out | 0 | Retained worker event records. |
+| 17 | `PendingTxCount` | Int32 | Out | 0 | Pending response plus manual TX entries; excludes cyclic jobs. |
+| 18 | `LastRxAgeMs` | Int32 | Out | -1 | Milliseconds since any received byte, or -1 before RX. |
+| 19 | `LastResponseLatencyUs` | Int32 | Out | -1 | Latest trigger-to-completed-write software latency. |
+| 20 | `MaxResponseLatencyUs` | Int32 | Out | 0 | Largest response latency since reset. |
+| 21 | `LastValidRxAgeMs` | Int32 | Out | -1 | Milliseconds since a valid configured frame, or -1. |
+| 22 | `LastTxAgeMs` | Int32 | Out | -1 | Milliseconds since successful worker TX, or -1. |
+| 23 | `WorkerLastErrorCode` | Int32 | Out | 0 | Last fatal worker transport/project error. |
+| 24 | `WorkerLastErrorMessage` | String | Out | empty | Human-readable worker error context. |
 
 Ages are -1 before the first event. Response latency is measured with
 `QueryPerformanceCounter` from trigger to completion of the Win32 write; use a
@@ -580,7 +581,8 @@ returns the pre-reset snapshot, then resets counters and latency maxima.
 Returns oldest UTC, CR/LF-separated events with an event sequence and
 high-resolution `worker_us` offset: worker start/stop, valid/checksum
 RX, response/cycle/manual TX, `RESPONSE_CANCEL` when later RX invalidates a
-stale quiet-gap response, silence, and transport errors. At capacity the oldest
+stale quiet-gap response, `RESPONSE_SUPPRESSED_BACKLOG` when a late reply is
+withheld to protect the next RX window, silence, and transport errors. At capacity the oldest
 event is dropped. Every actual transmit is labeled `TX_RESPONSE`, `TX_CYCLE`,
 or `TX_MANUAL`, which is the preferred way to identify an unexpected sender.
 
@@ -661,6 +663,14 @@ later RX activity cancels a pending mode-1 response; if those new bytes complete
 a matching valid frame, that new frame schedules a fresh response.
 `ReplacePending=1` replaces/reschedules a pending response on a newer valid
 matching frame received before it was selected for TX.
+
+All response modes also apply a backlog safety guard. A response scheduled by
+the current receive pass is withheld when that pass receives more than one
+frame's worth of bytes, parses multiple valid frames, or leaves bytes from the
+next frame buffered. A late response is already outside its intended slot and
+could collide with the next request. Each suppression increments
+`ResponseSuppressedCount` and records `RESPONSE_SUPPRESSED_BACKLOG` with the
+received, parsed-frame, and residual-byte counts.
 
 ### `SRCSerial_responseCreate`
 

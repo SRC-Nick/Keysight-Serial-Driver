@@ -107,6 +107,8 @@ Currently covers:
 - Receive-event wait rejection without an open port.
 - Quiet-gap response cancellation after later RX activity, while delay-only
   responses retain their explicitly requested behavior.
+- Response-backlog suppression decisions for oversized reads, multiple parsed
+  frames, and residual next-frame bytes.
 - Present COM-port enumeration.
 - Idempotent stop.
 

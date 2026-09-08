@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Added response-backlog protection that withholds a triggered reply when an
+  oversized RX batch, multiple parsed frames, or residual next-frame bytes show
+  that its safe transmit window has passed. Suppressions are logged and exposed
+  through `ResponseSuppressedCount`.
 - Replaced the protocol worker's timer-only receive polling with overlapped
   `WaitCommEvent` notification. This prevents Windows 7 timer quantization from
   delaying the remainder of a partially received frame by roughly 10-16 ms and
