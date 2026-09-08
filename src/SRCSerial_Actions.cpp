@@ -693,7 +693,7 @@ extern "C" void UTAAPI SRCSerial_workerGetStatus(HUTAPB block)
     const char* integerOutputs[] = { "WorkerRunning", "RxFrameCount",
         "ValidRxFrameCount", "InvalidRxFrameCount", "ChecksumErrorCount",
         "BadIdCount", "DroppedByteCount", "TxFrameCount", "ResponseTxCount",
-        "CyclicTxCount", "ManualTxCount", "RxSilenceTimeoutCount",
+        "ResponseSuppressedCount", "CyclicTxCount", "ManualTxCount", "RxSilenceTimeoutCount",
         "RxFramesQueued", "EventsQueued", "PendingTxCount", "LastRxAgeMs",
         "LastResponseLatencyUs", "MaxResponseLatencyUs", "LastValidRxAgeMs",
         "LastTxAgeMs", "WorkerLastErrorCode" };
@@ -714,6 +714,8 @@ extern "C" void UTAAPI SRCSerial_workerGetStatus(HUTAPB block)
         srcserial::SetInt32(block, "DroppedByteCount", static_cast<long>(value.droppedByteCount));
         srcserial::SetInt32(block, "TxFrameCount", static_cast<long>(value.txFrameCount));
         srcserial::SetInt32(block, "ResponseTxCount", static_cast<long>(value.responseTxCount));
+        srcserial::SetInt32(block, "ResponseSuppressedCount",
+            static_cast<long>(value.responseSuppressedCount));
         srcserial::SetInt32(block, "CyclicTxCount", static_cast<long>(value.cyclicTxCount));
         srcserial::SetInt32(block, "ManualTxCount", static_cast<long>(value.manualTxCount));
         srcserial::SetInt32(block, "RxSilenceTimeoutCount", static_cast<long>(value.rxSilenceTimeoutCount));

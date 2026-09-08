@@ -140,6 +140,7 @@ namespace srcserial
         DWORD droppedByteCount;
         DWORD txFrameCount;
         DWORD responseTxCount;
+        DWORD responseSuppressedCount;
         DWORD cyclicTxCount;
         DWORD manualTxCount;
         DWORD rxSilenceTimeoutCount;
@@ -209,6 +210,8 @@ namespace srcserial
     bool WorkerIsRunning();
     bool ShouldCancelQuietGapResponse(bool pending, long responseMode,
         LONGLONG triggerQpc, LONGLONG receiveQpc);
+    bool ShouldSuppressBacklogResponse(size_t receivedBytes,
+        size_t frameLength, DWORD validFramesParsed, size_t residualBytes);
     Status WorkerStart(const WorkerConfig& config);
     Status WorkerStop(bool clearState);
     Status WorkerGetStatus(WorkerStatus* status, bool resetCounters);

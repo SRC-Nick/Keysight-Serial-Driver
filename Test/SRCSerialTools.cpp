@@ -207,7 +207,9 @@ namespace
         p.push_back(Int32("ValidRxFrameCount", 0, true)); p.push_back(Int32("InvalidRxFrameCount", 0, true));
         p.push_back(Int32("ChecksumErrorCount", 0, true)); p.push_back(Int32("BadIdCount", 0, true));
         p.push_back(Int32("DroppedByteCount", 0, true)); p.push_back(Int32("TxFrameCount", 0, true));
-        p.push_back(Int32("ResponseTxCount", 0, true)); p.push_back(Int32("CyclicTxCount", 0, true));
+        p.push_back(Int32("ResponseTxCount", 0, true));
+        p.push_back(Int32("ResponseSuppressedCount", 0, true));
+        p.push_back(Int32("CyclicTxCount", 0, true));
         p.push_back(Int32("ManualTxCount", 0, true)); p.push_back(Int32("RxSilenceTimeoutCount", 0, true));
         p.push_back(Int32("RxFramesQueued", 0, true)); p.push_back(Int32("EventsQueued", 0, true));
         p.push_back(Int32("PendingTxCount", 0, true)); p.push_back(Int32("LastRxAgeMs", -1, true));
@@ -390,6 +392,16 @@ namespace
             "retain delay-only response across later RX activity");
         ok &= Check(!srcserial::ShouldCancelQuietGapResponse(false, 1, 100, 101),
             "ignore inactive quiet-gap response");
+        ok &= Check(!srcserial::ShouldSuppressBacklogResponse(6, 6, 1, 0),
+            "allow one complete response frame without backlog");
+        ok &= Check(srcserial::ShouldSuppressBacklogResponse(12, 6, 1, 0),
+            "suppress response after oversized receive batch");
+        ok &= Check(srcserial::ShouldSuppressBacklogResponse(6, 6, 2, 0),
+            "suppress response after multiple parsed frames");
+        ok &= Check(srcserial::ShouldSuppressBacklogResponse(4, 6, 1, 1),
+            "suppress response when next-frame bytes remain");
+        ok &= Check(!srcserial::ShouldSuppressBacklogResponse(4, 6, 0, 4),
+            "do not suppress when no response was triggered");
         std::string ports;
         DWORD portCount = 0;
         status = srcserial::EnumeratePorts(&ports, &portCount);

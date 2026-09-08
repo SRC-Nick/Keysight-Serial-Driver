@@ -245,9 +245,9 @@ ROUTINE JLG_SerialStartup
         TriggerOffset=-1,         // every valid configured RX frame
         TriggerValue=0,
         TriggerMask=255,
-        ResponseMode=1,           // quiet-gap response
+        ResponseMode=0,           // immediate after complete valid frame
         ResponseDelayMs=0,
-        QuietGapMs=1,
+        QuietGapMs=0,
         ReplacePending=1,
         Enabled=1,
         TriggerSkipCount=0,
